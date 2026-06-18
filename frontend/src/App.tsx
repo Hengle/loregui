@@ -3,9 +3,11 @@ import {
   api,
   branchInfoApi,
   branchProtectApi,
+  fileHashApi,
   type Branch,
   type BranchInfoResult,
   type FileChange,
+  type FileHashEntry,
   type RepoStatus,
   type Revision,
 } from "./api";
@@ -34,6 +36,10 @@ export default function App() {
   // --- branch info state ---
   const [branchInfoData, setBranchInfoData] = useState<BranchInfoResult | null>(null);
   const [branchInfoLoading, setBranchInfoLoading] = useState(false);
+
+  // --- file hash state ---
+  const [fileHashData, setFileHashData] = useState<FileHashEntry[] | null>(null);
+  const [fileHashLoading, setFileHashLoading] = useState(false);
 
   const refresh = useCallback(async () => {
     await run(async () => {
@@ -68,6 +74,21 @@ export default function App() {
       }
     },
     [branchInfoData],
+  );
+
+  const fetchFileHash = useCallback(
+    async (paths: string[]) => {
+      setFileHashLoading(true);
+      try {
+        const result = await fileHashApi.hash(paths);
+        setFileHashData(result.files);
+      } catch {
+        setFileHashData(null);
+      } finally {
+        setFileHashLoading(false);
+      }
+    },
+    [],
   );
 
   return (
@@ -183,13 +204,37 @@ export default function App() {
             items={staged}
             action="unstage"
             onAction={(paths) => void run(async () => { await api.unstage(paths); await refresh(); })}
+            onHash={(paths) => void fetchFileHash(paths)}
           />
           <Section
             title="Changes"
             items={unstaged}
             action="stage"
             onAction={(paths) => void run(async () => { await api.stage(paths); await refresh(); })}
+            onHash={(paths) => void fetchFileHash(paths)}
           />
+
+          {/* --- file hash panel --- */}
+          {fileHashLoading && <p className="file-hash-loading">Hashing...</p>}
+          {fileHashData && !fileHashLoading && (
+            <div className="file-hash-panel">
+              <h3>
+                File Hash
+                <button className="meta-close" onClick={() => setFileHashData(null)}>x</button>
+              </h3>
+              {fileHashData.length === 0 && <p className="empty">No hash results</p>}
+              <ul className="file-hash-list">
+                {fileHashData.map((f) => (
+                  <li key={f.path}>
+                    <span className="path">{f.path}</span>
+                    <code className="hash">{f.hash.slice(0, 16)}</code>
+                    <span className="size">{f.size} B</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           <div className="commit">
             <textarea
               placeholder="Commit message"
@@ -234,11 +279,13 @@ function Section({
   items,
   action,
   onAction,
+  onHash,
 }: {
   title: string;
   items: FileChange[];
   action: string;
   onAction: (paths: string[]) => void;
+  onHash?: (paths: string[]) => void;
 }) {
   return (
     <div className="section">
@@ -256,6 +303,11 @@ function Section({
             <span className={`kind ${c.kind}`}>{c.kind[0].toUpperCase()}</span>
             <span className="path">{c.path}</span>
             <button onClick={() => onAction([c.path])}>{action}</button>
+            {onHash && (
+              <button className="hash-btn" onClick={() => onHash([c.path])} title="Compute file hash">
+                hash
+              </button>
+            )}
           </li>
         ))}
         {items.length === 0 && <li className="empty">nothing</li>}

@@ -156,3 +156,16 @@ pub async fn branch_protect(
     let api = LoreApi::new(state.dir());
     op_branch_protect(&api, BranchProtectArgs { branch }).await
 }
+
+// --- file hash ---
+
+use lore_vm::ops::file::hash::{hash as op_file_hash, FileHashArgs, FileHashResult};
+
+#[tauri::command]
+pub async fn file_hash(
+    state: State<'_, AppState>,
+    paths: Vec<String>,
+) -> Result<FileHashResult, LoreError> {
+    let api = LoreApi::new(state.dir());
+    op_file_hash(&api, FileHashArgs { paths }).await
+}

@@ -126,3 +126,20 @@ export const branchProtectApi = {
   protect: (branch: string) =>
     invoke<BranchProtectResult>("branch_protect", { branch }),
 };
+
+// --- file hash ---
+
+export interface FileHashEntry {
+  path: string;
+  size: number;
+  hash: string;
+}
+
+export interface FileHashResult {
+  files: FileHashEntry[];
+}
+
+export const fileHashApi = {
+  hash: (paths: string[]) =>
+    invoke<FileHashResult>("file_hash", { paths }),
+};
