@@ -1,0 +1,22 @@
+[workspace]
+resolver = "2"
+members = ["crates/lore-vm", "src-tauri"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/BiloxiStudios/loregui"
+authors = ["Biloxi Studios Inc."]
+
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+tokio = { version = "1", features = ["process", "rt-multi-thread", "macros", "io-util"] }
+tracing = "0.1"
+
+# Lore's own client library. Pre-1.0 — PIN this to an exact rev once you've
+# validated the API. The CLI-backed adapter below works without it; the
+# in-process `lore-client` adapter is the upgrade path (see crates/lore-vm/src/backend.rs).
+# lore-client = { git = "https://github.com/EpicGames/lore", rev = "PIN_ME" }

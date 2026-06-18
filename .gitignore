@@ -1,0 +1,22 @@
+# Rust
+/target
+**/target
+Cargo.lock.bak
+
+# Node
+node_modules
+frontend/dist
+website/.next
+website/out
+website/node_modules
+
+# Tauri
+src-tauri/gen
+src-tauri/target
+
+# Editor / OS
+.DS_Store
+*.swp
+.idea
+.vscode/*
+!.vscode/extensions.json
