@@ -8,8 +8,16 @@ html {
 
 body {
   font-family: "Inter", system-ui, sans-serif;
-  background-color: #0e1525;
-  color: #e6e9f0;
+  /* BiloxiStudios retrowave base: near-black with a purple/cyan wash. */
+  background-color: #05010d;
+  background-image: linear-gradient(
+    to bottom right,
+    #05010d 0%,
+    rgba(185, 103, 255, 0.12) 45%,
+    rgba(1, 205, 254, 0.1) 100%
+  );
+  background-attachment: fixed;
+  color: #f5e6ca;
   overflow-x: hidden;
 }
 
@@ -27,8 +35,69 @@ h6 {
   animation: gradient-shift 6s ease infinite;
 }
 
+/* BiloxiStudios vaporwave shimmering display text. */
+.vapor-text {
+  background-image: linear-gradient(
+    to right,
+    #ff71ce,
+    #fffb96,
+    #01cdfe,
+    #ff71ce
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 2px 10px rgba(255, 113, 206, 0.3));
+  animation: text-shine 6s linear infinite;
+}
+
+@keyframes text-shine {
+  from {
+    background-position: 0% center;
+  }
+  to {
+    background-position: 200% center;
+  }
+}
+
+@keyframes gradient-shift {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
 section {
   will-change: transform;
+}
+
+/* BiloxiStudios custom scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+::-webkit-scrollbar-thumb {
+  border-radius: 9999px;
+  background-image: linear-gradient(
+    45deg,
+    #ff71ce 0%,
+    #b967ff 50%,
+    #01cdfe 100%
+  );
+}
+
+/* BiloxiStudios selection colors */
+::selection {
+  background: #b967ff;
+  color: #fffb96;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -36,6 +105,7 @@ section {
     scroll-behavior: auto;
   }
   .animate-gradient,
+  .vapor-text,
   .animate-float,
   .animate-fade-in-up {
     animation: none !important;
