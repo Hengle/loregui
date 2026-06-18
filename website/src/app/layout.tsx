@@ -69,7 +69,26 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        {/* BiloxiStudios retrowave perspective grid */}
+        <div
+          className="pointer-events-none fixed inset-0 -z-20 opacity-20"
+          aria-hidden="true"
+          style={{
+            backgroundImage: `
+              linear-gradient(transparent 0%, #B967FF 2%, transparent 5%),
+              linear-gradient(90deg, transparent 0%, #01CDFE 2%, transparent 5%)
+            `,
+            backgroundSize: "40px 40px",
+            transform:
+              "perspective(500px) rotateX(60deg) translateY(-100px) translateZ(-200px)",
+            transformOrigin: "top center",
+            height: "200vh",
+          }}
+        />
+        <div className="pointer-events-none fixed inset-0 -z-10 bg-black/50" />
+        {children}
+      </body>
     </html>
   );
 }

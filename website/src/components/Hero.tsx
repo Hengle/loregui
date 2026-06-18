@@ -2,9 +2,9 @@ import { Container } from "@/components/ui/Container";
 import { Button } from "@/components/ui/Button";
 import { GradientText } from "@/components/ui/GradientText";
 import { Badge } from "@/components/ui/Badge";
+import Image from "next/image";
 import { ArrowRightIcon, GithubIcon, WindowsIcon } from "@/components/icons";
 import { AppWindow } from "@/components/mockups/AppWindow";
-import { StatusMockup } from "@/components/mockups/StatusMockup";
 
 const RELEASES_URL = "https://github.com/BiloxiStudios/loregui/releases/download/v0.1.0-alpha/LoreGUI_0.1.0_x64-setup.exe";
 const GITHUB_URL = "https://github.com/BiloxiStudios/loregui";
@@ -17,13 +17,14 @@ export function Hero() {
     >
       {/* Background glows */}
       <div className="pointer-events-none absolute inset-0" aria-hidden="true">
-        <div className="absolute top-0 left-1/2 h-[600px] w-[800px] -translate-x-1/2 rounded-full bg-brand-accent/5 blur-3xl" />
-        <div className="absolute top-40 right-0 h-[400px] w-[400px] rounded-full bg-brand-gold/5 blur-3xl" />
+        <div className="absolute top-0 left-1/2 h-[600px] w-[800px] -translate-x-1/2 rounded-full bg-vapor-blue/10 blur-3xl" />
+        <div className="absolute top-40 right-0 h-[400px] w-[400px] rounded-full bg-vapor-pink/10 blur-3xl" />
+        <div className="absolute top-24 left-0 h-[360px] w-[360px] rounded-full bg-vapor-purple/10 blur-3xl" />
         <div
-          className="absolute inset-0 opacity-[0.04]"
+          className="absolute inset-0 opacity-[0.07]"
           style={{
             backgroundImage:
-              "linear-gradient(to right, #8896b5 1px, transparent 1px), linear-gradient(to bottom, #8896b5 1px, transparent 1px)",
+              "linear-gradient(to right, #B967FF 1px, transparent 1px), linear-gradient(to bottom, #01CDFE 1px, transparent 1px)",
             backgroundSize: "48px 48px",
             maskImage:
               "radial-gradient(ellipse 60% 50% at 50% 0%, black, transparent)",
@@ -82,13 +83,20 @@ export function Hero() {
           </p>
         </div>
 
-        {/* Hero app mockup */}
+        {/* Hero app screenshot */}
         <div className="relative mx-auto mt-16 max-w-5xl">
           <AppWindow title="LoreGUI — astral-engine">
-            <StatusMockup />
+            <Image
+              src="/screenshots/app-full.png"
+              alt="The LoreGUI desktop app showing branches, file changes, a commit box and revision history for a game project."
+              width={2880}
+              height={1240}
+              className="w-full"
+              priority
+            />
           </AppWindow>
           <div
-            className="pointer-events-none absolute -inset-4 -z-10 rounded-xl bg-brand-accent/5 blur-2xl"
+            className="pointer-events-none absolute -inset-4 -z-10 rounded-xl bg-vapor-pink/10 blur-2xl"
             aria-hidden="true"
           />
         </div>

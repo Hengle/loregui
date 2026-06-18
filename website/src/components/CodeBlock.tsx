@@ -38,7 +38,7 @@ export function CodeBlock({ lines, className = "" }: CodeBlockProps) {
       >
         {copied ? (
           <>
-            <CheckIcon className="h-3.5 w-3.5 text-emerald-400" />
+            <CheckIcon className="h-3.5 w-3.5 text-vapor-green" />
             Copied
           </>
         ) : (
@@ -56,7 +56,7 @@ export function CodeBlock({ lines, className = "" }: CodeBlockProps) {
               <div key={i} className="whitespace-pre">
                 {isCmd ? (
                   <>
-                    <span className="select-none text-brand-accent">$ </span>
+                    <span className="select-none text-vapor-green">$ </span>
                     <span className="text-brand-text">{line.slice(2)}</span>
                   </>
                 ) : (

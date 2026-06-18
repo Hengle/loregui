@@ -1,8 +1,6 @@
+import Image from "next/image";
 import { Container } from "@/components/ui/Container";
 import { AppWindow } from "@/components/mockups/AppWindow";
-import { HistoryMockup } from "@/components/mockups/HistoryMockup";
-import { BranchesMockup } from "@/components/mockups/BranchesMockup";
-import { StatusMockup } from "@/components/mockups/StatusMockup";
 
 export function Screenshots() {
   return (
@@ -19,25 +17,43 @@ export function Screenshots() {
         </div>
 
         <div className="mt-16 grid gap-8">
-          {/* Wide: status */}
-          <AppWindow title="LoreGUI — Status · feature/boss-ai">
-            <StatusMockup />
+          {/* Wide: full app — status + branches + history */}
+          <AppWindow title="LoreGUI — astral-engine · feature/boss-ai">
+            <Image
+              src="/screenshots/app-full.png"
+              alt="LoreGUI desktop app: branches, staged and unstaged changes, commit box, and revision history side by side."
+              width={2880}
+              height={1240}
+              className="w-full"
+              priority
+            />
           </AppWindow>
 
-          {/* Two-up: history + branches */}
-          <div className="grid gap-8 lg:grid-cols-2">
-            <AppWindow title="LoreGUI — History">
-              <HistoryMockup />
+          {/* Two-up: status close-up + history */}
+          <div className="grid items-start gap-8 lg:grid-cols-2">
+            <AppWindow title="LoreGUI — Status">
+              <Image
+                src="/screenshots/app-status.png"
+                alt="LoreGUI status view: staged and unstaged file changes with add, modify, delete and untracked markers, and a commit message box."
+                width={1080}
+                height={962}
+                className="w-full"
+              />
             </AppWindow>
-            <AppWindow title="LoreGUI — Branches & Locks">
-              <BranchesMockup />
+            <AppWindow title="LoreGUI — History">
+              <Image
+                src="/screenshots/app-history.png"
+                alt="LoreGUI history view: a list of revisions with short hashes, commit messages and authors."
+                width={640}
+                height={996}
+                className="w-full"
+              />
             </AppWindow>
           </div>
         </div>
 
         <p className="mt-8 text-center text-sm text-brand-muted">
-          Interface mockups. Real product screenshots land with the first public
-          release.
+          Real screenshots of the LoreGUI desktop app.
         </p>
       </Container>
     </section>

@@ -83,7 +83,7 @@ export function BuiltOnApi() {
             <ul className="grid gap-x-6 gap-y-3 sm:grid-cols-2" role="list">
               {surfaces.map((item) => (
                 <li key={item} className="flex items-start gap-2.5">
-                  <CheckIcon className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
+                  <CheckIcon className="mt-0.5 h-4 w-4 shrink-0 text-vapor-green" />
                   <span className="text-sm text-brand-text">{item}</span>
                 </li>
               ))}
