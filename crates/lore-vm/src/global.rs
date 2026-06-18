@@ -65,7 +65,9 @@ impl LoreGlobal {
             search_nearest: 0,
             gc: 0,
             in_memory: 0,
-            max_parallel_files: 16,
+            // Remaining fields (file_count_limit, file_size_limit, compress_task_limit,
+            // store_keep_alive*, sync_data, cache) take their upstream defaults.
+            ..Default::default()
         }
     }
 }

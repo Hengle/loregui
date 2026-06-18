@@ -114,7 +114,9 @@ pub async fn create_repository(
     name: String,
 ) -> Result<String, LoreError> {
     let p = PathBuf::from(&path);
-    let id = default_backend(state.dir()).create_repository(p.clone(), &name).await?;
+    let id = default_backend(state.dir())
+        .create_repository(p.clone(), &name)
+        .await?;
     *state.working_dir.lock().unwrap() = p;
     Ok(id)
 }

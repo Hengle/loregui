@@ -41,12 +41,16 @@ impl EventStream {
 pub fn collect_events() -> (LoreEventCallback, oneshot::Receiver<EventStream>) {
     let (tx, rx) = oneshot::channel();
     let stream: Arc<Mutex<EventStream>> = Arc::new(Mutex::new(EventStream::default()));
+    // The lore callback is `Fn` (invoked once per streamed event), but a oneshot
+    // Sender can only fire once and is consumed by `send`. Hold it in a shared
+    // Option so the `Fn` closure can `take()` it exactly once on completion.
+    let tx: Arc<Mutex<Option<oneshot::Sender<EventStream>>>> = Arc::new(Mutex::new(Some(tx)));
 
     let callback = Box::new(move |event: &LoreEvent| {
         let mut s = stream.lock().unwrap();
         match event {
             LoreEvent::Error(data) => {
-                s.error = Some(data.message.as_str().to_string());
+                s.error = Some(data.error_inner.as_str().to_string());
             }
             LoreEvent::Complete(data) => {
                 s.status = Some(data.status);
@@ -55,10 +59,13 @@ pub fn collect_events() -> (LoreEventCallback, oneshot::Receiver<EventStream>) {
         }
         s.events.push(event.clone());
 
-        // Signal when done (Complete or Error)
-        if matches!(event, LoreEvent::Complete(_)) || matches!(event, LoreEvent::Error(_)) {
-            if let Ok(final_stream) = stream.lock().map(|mut g| std::mem::take(&mut *g)) {
-                let _ = tx.send(final_stream);
+        // Signal once the terminal event (Complete or Error) arrives.
+        let done = matches!(event, LoreEvent::Complete(_) | LoreEvent::Error(_));
+        if done {
+            let final_stream = std::mem::take(&mut *s);
+            drop(s);
+            if let Some(sender) = tx.lock().unwrap().take() {
+                let _ = sender.send(final_stream);
             }
         }
     });

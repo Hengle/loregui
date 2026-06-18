@@ -65,21 +65,17 @@ pub async fn login_with_token(
 ) -> Result<LoginWithTokenResult> {
     let (callback, rx) = collect_events();
 
-    let status = lore::auth::login_with_token(
-        api.globals().build(),
-        args.into_lore(),
-        callback,
-    )
-    .await;
+    let status =
+        lore::auth::login_with_token(api.globals().build(), args.into_lore(), callback).await;
 
-    let stream = rx.await.map_err(|e| {
-        LoreError::CommandFailed(format!("event stream cancelled: {e}"))
-    })?;
+    let stream = rx
+        .await
+        .map_err(|e| LoreError::CommandFailed(format!("event stream cancelled: {e}")))?;
 
     if !stream.is_ok() {
-        return Err(LoreError::CommandFailed(
-            stream.error.unwrap_or_else(|| format!("login_with_token failed with status {status}")),
-        ));
+        return Err(LoreError::CommandFailed(stream.error.unwrap_or_else(
+            || format!("login_with_token failed with status {status}"),
+        )));
     }
 
     let (user_id, display_name) = stream.auth_user_info().ok_or_else(|| {
