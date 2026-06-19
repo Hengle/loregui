@@ -32,6 +32,21 @@ impl EventStream {
         }
         None
     }
+
+    /// Collect all `LayerStagedEntry` events into a vector of (target_path, source_repository, staged_file_count).
+    pub fn layer_staged_entries(&self) -> Vec<(String, String, u64)> {
+        let mut entries = Vec::new();
+        for event in &self.events {
+            if let LoreEvent::LayerStagedEntry(data) = event {
+                entries.push((
+                    data.target_path.as_str().to_string(),
+                    format!("{}", data.source_repository),
+                    data.staged_file_count,
+                ));
+            }
+        }
+        entries
+    }
 }
 
 /// Create a callback + receiver that collects events until completion.
