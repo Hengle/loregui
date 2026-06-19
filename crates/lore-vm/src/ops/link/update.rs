@@ -21,6 +21,7 @@ pub struct UpdateArgs {
     /// Path within this repository of the link to update.
     pub link_path: String,
     /// Branch or specific revision to pin the link to.
+    #[serde(default)]
     pub pin: String,
 }
 
@@ -91,6 +92,14 @@ mod tests {
     }
 
     #[test]
+    fn update_args_deserializes_with_defaults() {
+        let json = r#"{"link_path":"deps/external"}"#;
+        let args: UpdateArgs = serde_json::from_str(json).expect("should deserialize");
+        assert_eq!(args.link_path, "deps/external");
+        assert_eq!(args.pin, "");
+    }
+
+    #[test]
     fn update_args_deserializes() {
         let json = r#"{"link_path":"deps/external","pin":"v1.2.3"}"#;
         let args: UpdateArgs = serde_json::from_str(json).expect("should deserialize");
@@ -107,6 +116,17 @@ mod tests {
         let lore_args = args.into_lore();
         assert_eq!(lore_args.link_path.as_str(), "deps/external");
         assert_eq!(lore_args.pin.as_str(), "main");
+    }
+
+    #[test]
+    fn update_args_empty_pin() {
+        let args = UpdateArgs {
+            link_path: "deps/lib".into(),
+            pin: "".into(),
+        };
+        let lore_args = args.into_lore();
+        assert_eq!(lore_args.link_path.as_str(), "deps/lib");
+        assert_eq!(lore_args.pin.as_str(), "");
     }
 
     #[test]
