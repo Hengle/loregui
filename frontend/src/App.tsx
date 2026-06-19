@@ -8,6 +8,7 @@ import {
   branchProtectApi,
   fileInfoApi,
   fileObliterateApi,
+  revisionCherryPickResolveMineApi,
   revisionDiffApi,
   revisionRevertLocalApi,
   type Branch,
@@ -338,6 +339,22 @@ export default function App() {
                   {!fileInfoData.flag_conflict && !fileInfoData.flag_modified && !fileInfoData.flag_added && !fileInfoData.flag_deleted && <span>clean</span>}
                 </dd>
               </dl>
+            </div>
+          )}
+          {staged.length > 0 && (
+            <div className="conflict-actions">
+              <button
+                onClick={() =>
+                  void run(async () => {
+                    const paths = staged.map((c) => c.path);
+                    await revisionCherryPickResolveMineApi.cherryPickResolveMine(paths);
+                    await refresh();
+                  })
+                }
+                title="Resolve cherry-pick conflicts by keeping the current branch version"
+              >
+                Resolve mine (cherry-pick)
+              </button>
             </div>
           )}
           <div className="commit">

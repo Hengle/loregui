@@ -283,3 +283,17 @@ export const revisionRevertLocalApi = {
       noCommit,
     }),
 };
+
+// --- revision cherry_pick_resolve_mine ---
+
+export interface CherryPickResolveMineResult {
+  paths: string[];
+}
+
+export const revisionCherryPickResolveMineApi = {
+  cherryPickResolveMine: (paths: string[]) =>
+    invoke<CherryPickResolveMineResult>(
+      "revision_cherry_pick_resolve_mine",
+      { paths },
+    ),
+};

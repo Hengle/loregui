@@ -307,3 +307,19 @@ pub async fn revision_revert_local(
     )
     .await
 }
+
+// --- revision cherry_pick_resolve_mine ---
+
+use lore_vm::ops::revision::cherry_pick_resolve_mine::{
+    cherry_pick_resolve_mine as op_revision_cherry_pick_resolve_mine, CherryPickResolveMineArgs,
+    CherryPickResolveMineResult,
+};
+
+#[tauri::command]
+pub async fn revision_cherry_pick_resolve_mine(
+    state: State<'_, AppState>,
+    paths: Vec<String>,
+) -> Result<CherryPickResolveMineResult, LoreError> {
+    let api = LoreApi::new(state.dir());
+    op_revision_cherry_pick_resolve_mine(&api, CherryPickResolveMineArgs { paths }).await
+}
