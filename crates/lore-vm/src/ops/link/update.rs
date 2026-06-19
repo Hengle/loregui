@@ -1,8 +1,127 @@
 //! `link update` operation — binds `lore::link::update`.
 //!
-//! TODO: implement following the reference op
-//! `crates/lore-vm/src/ops/auth/login_with_token.rs` and IMPLEMENTATION-PLAN.md §4:
-//!   - build args via `crate::global::LoreGlobal`
-//!   - collect events via `crate::collect::collect_events`
-//!   - map to a typed result in `crate::model`
-//! Acceptance: `cargo check -p lore-vm` + a test. Edit ONLY this file.
+//! Updates the pin or other properties of an existing link.
+//! Calls [`lore::link::update`] in-process (no CLI shelling) and collects
+//! `LinkChange` events.
+
+use crate::api::LoreApi;
+use crate::collect::collect_events;
+use crate::error::{LoreError, Result};
+
+use lore::interface::LoreString;
+use lore::link::LoreLinkUpdateArgs;
+use serde::{Deserialize, Serialize};
+
+/// Arguments for [`update`].
+///
+/// Mirrors `LoreLinkUpdateArgs` from the upstream `lore` crate
+/// but uses plain `String` so it serialises cleanly across the Tauri boundary.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdateArgs {
+    /// Path within this repository of the link to update.
+    pub link_path: String,
+    /// Branch or specific revision to pin the link to.
+    pub pin: String,
+}
+
+impl UpdateArgs {
+    fn into_lore(self) -> LoreLinkUpdateArgs {
+        LoreLinkUpdateArgs {
+            link_path: LoreString::from_str(&self.link_path),
+            pin: LoreString::from_str(&self.pin),
+        }
+    }
+}
+
+/// Result returned on successful `link update`.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdateResult {
+    /// The link path that was updated.
+    pub link_path: String,
+}
+
+/// Updates the pin or other properties of an existing link.
+///
+/// Calls the upstream `lore::link::update` in-process and collects
+/// link change events to return a typed result.
+pub async fn update(api: &LoreApi, args: UpdateArgs) -> Result<UpdateResult> {
+    let link_path = args.link_path.clone();
+    let (callback, rx) = collect_events();
+
+    let status =
+        lore::link::update(api.globals().build(), args.into_lore(), callback).await;
+
+    let stream = rx
+        .await
+        .map_err(|e| LoreError::CommandFailed(format!("event stream cancelled: {e}")))?;
+
+    if !stream.is_ok() {
+        return Err(LoreError::CommandFailed(stream.error.unwrap_or_else(
+            || format!("link update failed with status {status}"),
+        )));
+    }
+
+    // Verify LinkChange event was emitted
+    let found_link_change = stream.events.iter().any(|e| {
+        matches!(e, lore::interface::LoreEvent::LinkChange(_))
+    });
+
+    if !found_link_change {
+        return Err(LoreError::Parse(
+            "link update succeeded but no LinkChange event emitted".into(),
+        ));
+    }
+
+    Ok(UpdateResult { link_path })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn update_args_serializes() {
+        let args = UpdateArgs {
+            link_path: "deps/external".into(),
+            pin: "v1.2.3".into(),
+        };
+        let json = serde_json::to_string(&args).expect("should serialize");
+        assert!(json.contains("deps/external"));
+        assert!(json.contains("v1.2.3"));
+    }
+
+    #[test]
+    fn update_args_deserializes() {
+        let json = r#"{"link_path":"deps/external","pin":"v1.2.3"}"#;
+        let args: UpdateArgs = serde_json::from_str(json).expect("should deserialize");
+        assert_eq!(args.link_path, "deps/external");
+        assert_eq!(args.pin, "v1.2.3");
+    }
+
+    #[test]
+    fn update_args_into_lore_conversion() {
+        let args = UpdateArgs {
+            link_path: "deps/external".into(),
+            pin: "main".into(),
+        };
+        let lore_args = args.into_lore();
+        assert_eq!(lore_args.link_path.as_str(), "deps/external");
+        assert_eq!(lore_args.pin.as_str(), "main");
+    }
+
+    #[test]
+    fn update_result_serializes() {
+        let result = UpdateResult {
+            link_path: "deps/external".into(),
+        };
+        let json = serde_json::to_string(&result).expect("should serialize");
+        assert!(json.contains("deps/external"));
+    }
+
+    #[test]
+    fn update_result_deserializes() {
+        let json = r#"{"link_path":"deps/external"}"#;
+        let result: UpdateResult = serde_json::from_str(json).expect("should deserialize");
+        assert_eq!(result.link_path, "deps/external");
+    }
+}
