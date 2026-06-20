@@ -596,6 +596,37 @@ export const fileDumpApi = {
     invoke<FileDumpResult>("file_dump", { address, path }),
 };
 
+// --- file diff ---
+
+export type FileDiffAction = "keep" | "add" | "delete" | "move" | "copy";
+
+export interface FileDiffEntry {
+  path: string;
+  patch: string;
+  action: FileDiffAction;
+}
+
+export const fileDiffApi = {
+  diff: (
+    paths: string[] = [],
+    sourceRevision: string = "",
+    targetRevision: string = "",
+    diff3: boolean = false,
+    contextLines: number = 3,
+    ignoreWhitespaceEol: boolean = false,
+    ignoreWhitespaceInline: boolean = false,
+  ) =>
+    invoke<FileDiffEntry[]>("file_diff", {
+      paths,
+      sourceRevision,
+      targetRevision,
+      diff3,
+      contextLines,
+      ignoreWhitespaceEol,
+      ignoreWhitespaceInline,
+    }),
+};
+
 // --- repository metadata_get ---
 
 export interface MetadataEntry {

@@ -833,6 +833,37 @@ pub async fn file_reset_to_last_merged(
     .await
 }
 
+// --- file diff ---
+
+use lore_vm::ops::file::diff::{diff as op_file_diff, DiffArgs, FileDiffEntry};
+
+#[tauri::command]
+pub async fn file_diff(
+    state: State<'_, AppState>,
+    paths: Vec<String>,
+    source_revision: String,
+    target_revision: String,
+    diff3: bool,
+    context_lines: u32,
+    ignore_whitespace_eol: bool,
+    ignore_whitespace_inline: bool,
+) -> Result<Vec<FileDiffEntry>, LoreError> {
+    let api = LoreApi::new(state.dir());
+    op_file_diff(
+        &api,
+        DiffArgs {
+            paths,
+            source_revision,
+            target_revision,
+            diff3,
+            context_lines,
+            ignore_whitespace_eol,
+            ignore_whitespace_inline,
+        },
+    )
+    .await
+}
+
 // --- revision sync ---
 
 use lore_vm::ops::revision::sync::{

@@ -59,6 +59,7 @@ pub fn run() {
             commands::file_dirty_move,
             commands::file_obliterate,
             commands::file_reset_to_last_merged,
+            commands::file_diff,
             commands::repository_dump,
             commands::repository_delete,
             commands::repository_list,
