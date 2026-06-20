@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import OnboardingFlow from "./onboarding/OnboardingFlow";
 import {
   api,
   branchArchiveApi,
@@ -55,6 +56,9 @@ function useAsyncError() {
 
 export default function App() {
   const [repo, setRepo] = useState<string>("");
+  const [onboarded, setOnboarded] = useState<boolean>(
+    () => localStorage.getItem("loregui.onboarded") === "true",
+  );
   const [status, setStatus] = useState<RepoStatus | null>(null);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [history, setHistory] = useState<Revision[]>([]);
@@ -120,6 +124,21 @@ export default function App() {
   }, [run]);
 
   useEffect(() => {
+    void refresh();
+  }, [refresh]);
+
+  // If a repository is already open, the user has been set up before —
+  // skip onboarding and remember that for next launch.
+  useEffect(() => {
+    if (repo && !onboarded) {
+      localStorage.setItem("loregui.onboarded", "true");
+      setOnboarded(true);
+    }
+  }, [repo, onboarded]);
+
+  const completeOnboarding = useCallback(() => {
+    localStorage.setItem("loregui.onboarded", "true");
+    setOnboarded(true);
     void refresh();
   }, [refresh]);
 
@@ -272,6 +291,10 @@ export default function App() {
       setMetadataLoading(false);
     }
   }, []);
+
+  if (!onboarded) {
+    return <OnboardingFlow onComplete={completeOnboarding} />;
+  }
 
   return (
     <div className="app">
