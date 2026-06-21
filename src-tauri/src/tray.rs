@@ -7,6 +7,16 @@ use tauri::{
 };
 
 pub const TRAY_ACTION_EVENT: &str = "tray/action";
+const TRAY_ID: &str = "loregui-tray";
+const TRAY_SEPARATOR: &str = " · ";
+const STATUS_DOT_OFFSET: i32 = 7;
+const STATUS_DOT_OUTER_RADIUS: i32 = 5;
+const STATUS_DOT_INNER_RADIUS: i32 = 4;
+const COLOR_STATUS_BORDER: [u8; 4] = [255, 255, 255, 255];
+const COLOR_STATUS_CLEAN: [u8; 4] = [73, 191, 115, 255];
+const COLOR_STATUS_DIRTY: [u8; 4] = [230, 168, 58, 255];
+const COLOR_STATUS_SYNCING: [u8; 4] = [84, 160, 255, 255];
+const COLOR_STATUS_CONFLICT: [u8; 4] = [230, 92, 92, 255];
 
 const TRAY_OPEN_ID: &str = "tray.open";
 const TRAY_SYNC_ID: &str = "tray.sync";
@@ -47,7 +57,7 @@ pub fn install<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
     let title = format_title(&snapshot);
     let icon = icon_for_status(snapshot.status)?;
 
-    TrayIconBuilder::with_id("loregui-tray")
+    TrayIconBuilder::with_id(TRAY_ID)
         .menu(&menu)
         .icon(icon)
         .tooltip(tooltip)
@@ -94,7 +104,7 @@ pub fn apply_snapshot<R: Runtime>(
     app: &AppHandle<R>,
     snapshot: &TraySnapshot,
 ) -> tauri::Result<()> {
-    if let Some(tray) = app.tray_by_id("loregui-tray") {
+    if let Some(tray) = app.tray_by_id(TRAY_ID) {
         tray.set_icon(Some(icon_for_status(snapshot.status)?))?;
         tray.set_tooltip(Some(format_tooltip(snapshot)))?;
         tray.set_title(Some(format_title(snapshot)))?;
@@ -162,20 +172,24 @@ fn format_title(snapshot: &TraySnapshot) -> String {
         return "LoreGUI".to_string();
     }
     format!(
-        "{} · {} dirty",
+        "{}{}{} dirty",
         snapshot.branch.trim(),
+        TRAY_SEPARATOR,
         snapshot.dirty_count
     )
 }
 
 fn format_tooltip(snapshot: &TraySnapshot) -> String {
     if snapshot.branch.trim().is_empty() {
-        return "LoreGUI · no repository open".to_string();
+        return format!("LoreGUI{}no repository open", TRAY_SEPARATOR);
     }
     format!(
-        "LoreGUI · {} · {} dirty · {}",
+        "LoreGUI{}{}{}{} dirty{}{}",
+        TRAY_SEPARATOR,
         snapshot.branch.trim(),
+        TRAY_SEPARATOR,
         snapshot.dirty_count,
+        TRAY_SEPARATOR,
         snapshot.status.label()
     )
 }
@@ -185,23 +199,25 @@ fn icon_for_status(status: TrayStatusKind) -> tauri::Result<Image<'static>> {
     let width = base.width();
     let height = base.height();
     let mut rgba = base.rgba().to_vec();
+    let dot_x = width as i32 - STATUS_DOT_OFFSET;
+    let dot_y = height as i32 - STATUS_DOT_OFFSET;
 
     draw_dot(
         &mut rgba,
         width as usize,
         height as usize,
-        width as i32 - 7,
-        height as i32 - 7,
-        5,
-        [255, 255, 255, 255],
+        dot_x,
+        dot_y,
+        STATUS_DOT_OUTER_RADIUS,
+        COLOR_STATUS_BORDER,
     );
     draw_dot(
         &mut rgba,
         width as usize,
         height as usize,
-        width as i32 - 7,
-        height as i32 - 7,
-        4,
+        dot_x,
+        dot_y,
+        STATUS_DOT_INNER_RADIUS,
         status.color(),
     );
 
@@ -243,10 +259,10 @@ impl TrayStatusKind {
 
     fn color(self) -> [u8; 4] {
         match self {
-            TrayStatusKind::Clean => [73, 191, 115, 255],
-            TrayStatusKind::Dirty => [230, 168, 58, 255],
-            TrayStatusKind::Syncing => [84, 160, 255, 255],
-            TrayStatusKind::Conflict => [230, 92, 92, 255],
+            TrayStatusKind::Clean => COLOR_STATUS_CLEAN,
+            TrayStatusKind::Dirty => COLOR_STATUS_DIRTY,
+            TrayStatusKind::Syncing => COLOR_STATUS_SYNCING,
+            TrayStatusKind::Conflict => COLOR_STATUS_CONFLICT,
         }
     }
 }

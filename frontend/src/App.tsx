@@ -103,7 +103,7 @@ export default function App() {
   const [branches, setBranches] = useState<Branch[]>([]);
   const [history, setHistory] = useState<Revision[]>([]);
   const [message, setMessage] = useState("");
-  const [currentFilePath, setCurrentFilePath] = useState<string | null>(null);
+  const [selectedFilePath, setSelectedFilePath] = useState<string | null>(null);
   const [syncHasConflicts, setSyncHasConflicts] = useState(false);
   const [toasts, setToasts] = useState<Array<{ id: number; text: string }>>([]);
   const { error, run, setError } = useAsyncError();
@@ -245,13 +245,14 @@ export default function App() {
       if (action === "check-in") {
         if (staged.length === 0) {
           pushToast("Stage at least one file before checking in.");
+          return;
         }
         window.setTimeout(() => commitMessageRef.current?.focus(), 50);
         return;
       }
 
       if (action === "release-lock") {
-        const path = currentFilePath;
+        const path = selectedFilePath;
         if (!path) {
           setLocksPanelOpen(true);
           pushToast("Choose a current file before releasing its lock.");
@@ -291,16 +292,16 @@ export default function App() {
         pushToast("Update checks are not configured in this build yet.");
       }
     },
-    [currentFilePath, pushToast, refresh, runSync, setError, staged.length, status?.branch],
+    [pushToast, refresh, runSync, selectedFilePath, setError, staged.length, status?.branch],
   );
 
   useEffect(() => {
     let unlisten: undefined | (() => void);
-    void listen<TrayActionPayload>(TRAY_ACTION_EVENT, ({ payload }) => {
-      void handleTrayAction(payload.action);
-    }).then((dispose) => {
-      unlisten = dispose;
-    });
+    void (async () => {
+      unlisten = await listen<TrayActionPayload>(TRAY_ACTION_EVENT, ({ payload }) => {
+        void handleTrayAction(payload.action);
+      });
+    })();
     return () => {
       if (unlisten) void unlisten();
     };
@@ -890,7 +891,7 @@ export default function App() {
             items={staged}
             action="unstage"
             onAction={(paths) => void run(async () => { await api.unstage(paths); await refresh(); })}
-            onSelectPath={setCurrentFilePath}
+            onSelectPath={setSelectedFilePath}
             onFileInfo={(path) => void fetchFileInfo(path)}
             extraAction={{
               label: "unresolve",
@@ -906,7 +907,7 @@ export default function App() {
             items={unstaged}
             action="stage"
             onAction={(paths) => void run(async () => { await api.stage(paths); await refresh(); })}
-            onSelectPath={setCurrentFilePath}
+            onSelectPath={setSelectedFilePath}
             onFileInfo={(path) => void fetchFileInfo(path)}
             extraAction={{
               label: "obliterate",
