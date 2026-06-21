@@ -1326,6 +1326,17 @@ export const storageApi = {
     invoke<StorageUploadResult>("storage_upload", { handle, partition, address }),
 };
 
+// --- revision cherry_pick_restart ---
+
+export interface CherryPickRestartResult {
+  paths: string[];
+}
+
+export const revisionCherryPickRestartApi = {
+  cherryPickRestart: (paths: string[]) =>
+    invoke<CherryPickRestartResult>("revision_cherry_pick_restart", { paths }),
+};
+
 // --- shared_store: info + auto-use ---
 
 export interface SharedStoreEntry {
