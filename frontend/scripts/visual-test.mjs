@@ -22,7 +22,7 @@ import { chromium } from "playwright";
 import { mkdirSync } from "node:fs";
 
 const BASE_URL = process.env.BASE_URL || "http://localhost:4173";
-const OUT_DIR = process.env.OUT_DIR || "/tmp/loregui-shots";
+const OUT_DIR = process.env.OUT_DIR || "website/public/screenshots";
 const VIEWPORT = { width: 1440, height: 900 };
 
 mkdirSync(OUT_DIR, { recursive: true });
