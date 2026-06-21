@@ -109,6 +109,7 @@ export const api = {
     invoke<string>("shared_store_create", { path }),
   serviceStart: (installAutorun: boolean) =>
     invoke<void>("service_start", { installAutorun }),
+  serviceStop: (all: boolean) => invoke<unknown>("service_stop", { all }),
 };
 
 // --- repository create (ops-layer) ---

@@ -67,7 +67,6 @@
     "revision_revert_local",
     "revision_revert_resolve",
     "revision_sync",
-    "service_start",
     "shared_store_create",
     "storage_get",
     "storage_obliterate",
