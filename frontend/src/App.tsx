@@ -6,6 +6,7 @@ import RepositoryPanel from "./RepositoryPanel";
 import LocksPanel from "./LocksPanel";
 import DependenciesPanel from "./DependenciesPanel";
 import HistoryPanel from "./HistoryPanel";
+import BranchesPanel from "./BranchesPanel";
 import CommandPalette, { OPEN_PALETTE_EVENT } from "./palette/CommandPalette";
 import {
   api,
@@ -72,6 +73,7 @@ export default function App() {
   const [locksPanelOpen, setLocksPanelOpen] = useState(false);
   const [depsPanelOpen, setDepsPanelOpen] = useState(false);
   const [historyPanelOpen, setHistoryPanelOpen] = useState(false);
+  const [branchesPanelOpen, setBranchesPanelOpen] = useState(false);
   const [status, setStatus] = useState<RepoStatus | null>(null);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [history, setHistory] = useState<Revision[]>([]);
@@ -325,6 +327,12 @@ export default function App() {
           </button>
           <button onClick={() => setThemeOpen(true)} title="Customize theme">
             Theme
+          </button>
+          <button
+            onClick={() => setBranchesPanelOpen(true)}
+            title="Branches: list, create, switch, info, protect, archive, reset, merge"
+          >
+            Branches
           </button>
           <button
             onClick={() => setHistoryPanelOpen(true)}
@@ -952,6 +960,9 @@ export default function App() {
         </div>
       )}
 
+      {branchesPanelOpen && (
+        <BranchesPanel onClose={() => setBranchesPanelOpen(false)} />
+      )}
       {historyPanelOpen && (
         <HistoryPanel onClose={() => setHistoryPanelOpen(false)} />
       )}
