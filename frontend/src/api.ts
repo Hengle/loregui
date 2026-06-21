@@ -1077,3 +1077,14 @@ export const authLocalUserInfoApi = {
       withToken,
     }),
 };
+
+// --- dependency remove ---
+
+export interface DependencyRemoveResult {
+  removed_count: number;
+}
+
+export const dependencyRemoveApi = {
+  remove: (entries: string[]) =>
+    invoke<DependencyRemoveResult>("dependency_remove", { entries }),
+};

@@ -1473,3 +1473,66 @@ pub async fn service_start(
     op_service_start(&api).await?;
     Ok(())
 }
+
+// --- dependency remove ---
+
+use lore_vm::ops::dependency::dependency_remove::{
+    dependency_remove as op_dependency_remove, DependencyRemoveArgs, DependencyRemoveEntry,
+    DependencyRemoveSource, DependencyRemoveResult,
+};
+
+#[tauri::command]
+pub async fn dependency_remove(
+    state: State<'_, AppState>,
+    entries: Vec<String>,
+) -> Result<DependencyRemoveResult, LoreError> {
+    let api = LoreApi::new(state.dir());
+
+    // Parse entries from the format: "source_path dependency_path tag1,tag2,..."
+    // Group by source_path and collect dependencies per source
+    use std::collections::HashMap;
+
+    let mut sources_map: HashMap<String, Vec<DependencyRemoveEntry>> = HashMap::new();
+
+    for entry in &entries {
+        let parts: Vec<&str> = entry.split_whitespace().collect();
+        if parts.len() < 2 {
+            return Err(LoreError::CommandFailed(format!(
+                "Invalid entry format: '{entry}'. Expected: 'source_path dependency_path [tag1,tag2,...]'"
+            )));
+        }
+
+        let source_path = parts[0].to_string();
+        let dependency_path = parts[1].to_string();
+
+        // Parse tags if provided (comma-separated)
+        let tags: Vec<String> = if parts.len() > 2 {
+            parts[2..]
+                .iter()
+                .flat_map(|s| s.split(','))
+                .map(|s| s.to_string())
+                .collect()
+        } else {
+            Vec::new()
+        };
+
+        sources_map
+            .entry(source_path)
+            .or_default()
+            .push(DependencyRemoveEntry {
+                dependency: dependency_path,
+                tags,
+            });
+    }
+
+    // Convert to the expected format
+    let sources: Vec<DependencyRemoveSource> = sources_map
+        .into_iter()
+        .map(|(path, dependencies)| DependencyRemoveSource {
+            path,
+            dependencies,
+        })
+        .collect();
+
+    op_dependency_remove(&api, DependencyRemoveArgs { sources }).await
+}
