@@ -59,6 +59,7 @@ jobs:
         env:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_API_KEY_P8_B64: ${{ secrets.APPLE_API_KEY_P8 }}
         run: |
           set -e
           if [ -z "$APPLE_CERTIFICATE" ]; then
@@ -79,10 +80,15 @@ jobs:
           fi
           security list-keychain -d user -s "$KEYCHAIN_PATH"
           echo "APPLE_SIGNING_IDENTITY=${{ secrets.APPLE_SIGNING_IDENTITY }}" >> "$GITHUB_ENV"
-          # Enable notarization ONLY when notarization creds are actually present.
-          # With a cert but no APPLE_ID, the app is signed but NOT notarized (rather
-          # than failing on an empty APPLE_TEAM_ID, as an earlier run did).
-          if [ -n "${{ secrets.APPLE_ID }}" ]; then
+          # Notarization runs ONLY when creds are present (otherwise signed-but-not-
+          # notarized, never a hard failure). Prefer the App Store Connect API key
+          # (APPLE_API_KEY + APPLE_API_ISSUER + the .p8); fall back to apple-id.
+          if [ -n "${{ secrets.APPLE_API_KEY }}" ] && [ -n "${{ secrets.APPLE_API_ISSUER }}" ]; then
+            printf '%s' "$APPLE_API_KEY_P8_B64" | base64 --decode > "$RUNNER_TEMP/AuthKey.p8"
+            echo "APPLE_API_ISSUER=${{ secrets.APPLE_API_ISSUER }}" >> "$GITHUB_ENV"
+            echo "APPLE_API_KEY=${{ secrets.APPLE_API_KEY }}" >> "$GITHUB_ENV"
+            echo "APPLE_API_KEY_PATH=$RUNNER_TEMP/AuthKey.p8" >> "$GITHUB_ENV"
+          elif [ -n "${{ secrets.APPLE_ID }}" ]; then
             echo "APPLE_ID=${{ secrets.APPLE_ID }}" >> "$GITHUB_ENV"
             echo "APPLE_PASSWORD=${{ secrets.APPLE_PASSWORD }}" >> "$GITHUB_ENV"
             echo "APPLE_TEAM_ID=${{ secrets.APPLE_TEAM_ID }}" >> "$GITHUB_ENV"
