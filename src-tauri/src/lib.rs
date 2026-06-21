@@ -91,6 +91,7 @@ pub fn run() {
             commands::branch_create,
             commands::repository_create,
             commands::link_remove,
+            commands::layer_remove,
             commands::storage_open,
             commands::storage_put,
             commands::storage_get,

@@ -1473,3 +1473,29 @@ pub async fn service_start(
     op_service_start(&api).await?;
     Ok(())
 }
+
+// --- layer layer_remove ---
+
+use lore_vm::ops::layer::layer_remove::{
+    layer_remove as op_layer_remove, LayerRemoveArgs, LayerRemoveResult,
+};
+
+#[tauri::command]
+pub async fn layer_remove(
+    state: State<'_, AppState>,
+    target_path: String,
+    source_repository: String,
+    purge: bool,
+) -> Result<LayerRemoveResult, LoreError> {
+    let api = LoreApi::new(state.dir());
+    let result = op_layer_remove(
+        &api,
+        LayerRemoveArgs {
+            target_path,
+            source_repository,
+            purge,
+        },
+    )
+    .await?;
+    Ok(result)
+}

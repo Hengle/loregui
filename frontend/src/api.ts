@@ -829,6 +829,22 @@ export const linkRemoveApi = {
     invoke<LinkRemoveResult>("link_remove", { linkPath }),
 };
 
+// --- layer layer_remove ---
+
+export interface LayerRemoveResult {
+  target_path: string;
+  source_repository: string;
+}
+
+export const layerRemoveApi = {
+  remove: (targetPath: string, sourceRepository: string, purge: boolean = false) =>
+    invoke<LayerRemoveResult>("layer_remove", {
+      targetPath,
+      sourceRepository,
+      purge,
+    }),
+};
+
 // --- lock file_release ---
 
 export interface FileReleaseResult {
