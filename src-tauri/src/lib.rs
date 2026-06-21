@@ -1,5 +1,6 @@
 mod commands;
 mod operations;
+mod tray;
 
 use commands::AppState;
 use operations::subscribe::subscribe_notifications;
@@ -138,9 +139,14 @@ pub fn run() {
             commands::revision_revert_resolve_mine,
             commands::revision_commit_with_metadata,
             commands::revision_metadata_clear,
+            commands::tray_sync_state,
             subscribe_notifications,
             unsubscribe_notifications,
         ])
+        .setup(|app| {
+            tray::install(&app.handle())?;
+            Ok(())
+        })
         .run(tauri::generate_context!())
         .expect("error while running loregui");
 }

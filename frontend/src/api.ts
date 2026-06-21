@@ -63,6 +63,14 @@ export interface ServiceStopResult {
   log_messages: string[];
 }
 
+export type TrayStatusKind = "clean" | "dirty" | "syncing" | "conflict";
+
+export interface TraySnapshot {
+  branch: string;
+  dirtyCount: number;
+  status: TrayStatusKind;
+}
+
 export const api = {
   currentRepository: () => invoke<string>("current_repository"),
   openRepository: (path: string) => invoke<void>("open_repository", { path }),
@@ -115,6 +123,8 @@ export const api = {
     invoke<void>("service_start", { installAutorun }),
   serviceStop: (all: boolean = false) =>
     invoke<ServiceStopResult>("service_stop", { all }),
+  traySyncState: (snapshot: TraySnapshot) =>
+    invoke<void>("tray_sync_state", { snapshot }),
 };
 
 // --- repository create (ops-layer) ---
