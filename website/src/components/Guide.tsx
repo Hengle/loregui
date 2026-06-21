@@ -3,6 +3,7 @@ import { Container } from "@/components/ui/Container";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { GradientText } from "@/components/ui/GradientText";
+import { CodeBlock } from "@/components/CodeBlock";
 import { AppWindow } from "@/components/mockups/AppWindow";
 
 type Shot = {
@@ -23,6 +24,10 @@ type GuideSectionData = {
   shots: Shot[];
   /** Lay shots out side by side (e.g. light vs dark theme). */
   sideBySide?: boolean;
+  /** Optional code snippet rendered below the body (e.g. MCP config). */
+  code?: string[];
+  /** Optional follow-up note rendered under the code snippet. */
+  note?: string;
 };
 
 const sections: GuideSectionData[] = [
@@ -200,6 +205,24 @@ const sections: GuideSectionData[] = [
     ],
     sideBySide: true,
   },
+  {
+    id: "agents-mcp",
+    step: "13",
+    heading: "Drive LoreGUI from AI agents (MCP)",
+    body: "LoreGUI is a toolkit, not just an app. The same in-process lore binding that powers the palette and panels also ships as an MCP server in the repo at lore-mcp/, exposing one tool per lore op — status, history, diff, branches, file-history and locks, plus commit, branch, stage and lock. Register it in your agent (Claude Code and friends) and it drives Epic’s lore VCS the way you drive the GUI. The loregui and lore agent skills let an agent self-onboard and configure it for you.",
+    shots: [],
+    code: [
+      '"lore": {',
+      '  "command": "/path/to/loregui/lore-mcp/venv/bin/python",',
+      '  "args": ["/path/to/loregui/lore-mcp/server.py"],',
+      '  "env": {',
+      '    "LORE_REPO": "/path/to/repo",',
+      '    "LORE_OFFLINE": "1"',
+      "  }",
+      "}",
+    ],
+    note: "One-time setup: build the JSON CLI with cargo build -p lorevm-cli, then create the lore-mcp/venv and install its requirements. The tool names and schemas are generated from the same command-palette manifests the GUI uses, so the agent and the app stay in lock-step.",
+  },
 ];
 
 function GuideShot({ shot }: { shot: Shot }) {
@@ -235,15 +258,29 @@ function GuideSection({ section }: { section: GuideSectionData }) {
         {section.body}
       </p>
 
-      <div
-        className={`mt-8 grid gap-6 ${
-          multi ? "lg:grid-cols-2" : "max-w-4xl"
-        }`}
-      >
-        {section.shots.map((shot) => (
-          <GuideShot key={shot.src} shot={shot} />
-        ))}
-      </div>
+      {section.code && (
+        <div className="mt-6 max-w-3xl">
+          <CodeBlock lines={section.code} />
+        </div>
+      )}
+
+      {section.note && (
+        <p className="mt-4 max-w-3xl text-sm leading-relaxed text-brand-muted">
+          {section.note}
+        </p>
+      )}
+
+      {section.shots.length > 0 && (
+        <div
+          className={`mt-8 grid gap-6 ${
+            multi ? "lg:grid-cols-2" : "max-w-4xl"
+          }`}
+        >
+          {section.shots.map((shot) => (
+            <GuideShot key={shot.src} shot={shot} />
+          ))}
+        </div>
+      )}
     </section>
   );
 }

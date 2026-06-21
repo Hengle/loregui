@@ -11,6 +11,7 @@ const RELEASES_URL = "https://github.com/BiloxiStudios/loregui/releases";
 const navLinks = [
   { label: "Features", href: "/#features" },
   { label: "API", href: "/#api" },
+  { label: "For agents", href: "/#agents" },
   { label: "Screens", href: "/#screens" },
   { label: "Guide", href: "/guide" },
   { label: "Install", href: "/#install" },
