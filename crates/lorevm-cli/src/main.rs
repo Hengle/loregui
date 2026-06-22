@@ -183,6 +183,8 @@ const SUPPORTED_OPS: &[&str] = &[
     "lock.file_query",
     "lock.file_status",
     "lock.file_acquire",
+    "lock.file_acquire_as_owner",
+    "lock.file_message_send",
     "lock.file_release",
 ];
 
@@ -327,6 +329,14 @@ async fn dispatch(cli: &Cli, api: &LoreApi) -> Result<(), CliError> {
         "lock.file_acquire" => op!(
             ops::lock::file_acquire::file_acquire,
             ops::lock::file_acquire::FileAcquireArgs
+        ),
+        "lock.file_acquire_as_owner" => op!(
+            ops::lock::file_acquire_as_owner::file_acquire_as_owner,
+            ops::lock::file_acquire_as_owner::FileAcquireAsOwnerArgs
+        ),
+        "lock.file_message_send" => op!(
+            ops::lock::file_message_send::file_message_send,
+            ops::lock::file_message_send::FileMessageSendArgs
         ),
         "lock.file_release" => op!(
             ops::lock::file_release::file_release,
