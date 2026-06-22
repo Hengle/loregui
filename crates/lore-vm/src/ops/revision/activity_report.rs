@@ -51,7 +51,7 @@ pub struct ActivityReportArgs {
 }
 
 impl ActivityReportArgs {
-    fn into_lore_history(&self) -> LoreRevisionHistoryArgs {
+    fn to_lore_history(&self) -> LoreRevisionHistoryArgs {
         LoreRevisionHistoryArgs {
             revision: LoreString::from_str(&self.revision),
             branch: LoreString::from_str(&self.branch),
@@ -147,7 +147,7 @@ pub async fn activity_report(
     // Step 1: Walk the revision chain.
     let (callback, rx) = collect_events();
     let status =
-        lore::revision::history(api.globals().build(), args.into_lore_history(), callback).await;
+        lore::revision::history(api.globals().build(), args.to_lore_history(), callback).await;
     let stream = rx
         .await
         .map_err(|e| LoreError::CommandFailed(format!("event stream cancelled: {e}")))?;
@@ -289,7 +289,7 @@ mod tests {
     }
 
     #[test]
-    fn args_into_lore_history() {
+    fn args_to_lore_history() {
         let args = ActivityReportArgs {
             revision: "abc123".into(),
             branch: "main".into(),
@@ -299,7 +299,7 @@ mod tests {
             date_to: 1_710_000_000,
             file_path: "src/lib.rs".into(),
         };
-        let lore_args = args.into_lore_history();
+        let lore_args = args.to_lore_history();
         assert_eq!(lore_args.revision.as_str(), "abc123");
         assert_eq!(lore_args.branch.as_str(), "main");
         assert_eq!(lore_args.length, 20);

@@ -111,7 +111,7 @@ mod tests {
         let json = r#"null"#;
         let args: SharedStoreInfoArgs = serde_json::from_str(json).expect("should deserialize");
         // Just verify it doesn't panic — struct is empty
-        drop(args);
+        let _ = args;
     }
 
     #[test]
