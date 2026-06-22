@@ -73,9 +73,11 @@ pub async fn revert(api: &LoreApi, args: RevertArgs) -> Result<RevertResult> {
         .map_err(|e| LoreError::CommandFailed(format!("event stream cancelled: {e}")))?;
 
     if !stream.is_ok() {
-        return Err(LoreError::CommandFailed(stream.error.unwrap_or_else(
-            || format!("revert failed with status {status}"),
-        )));
+        return Err(LoreError::CommandFailed(
+            stream
+                .error
+                .unwrap_or_else(|| format!("revert failed with status {status}")),
+        ));
     }
 
     let mut has_conflicts = false;
