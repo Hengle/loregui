@@ -11,9 +11,18 @@ flip `.skip` → `test` to make them live regression guards once fixed.
 
 ---
 
-## BUG #1 — `file.stage` silently no-ops on repo-relative paths  (P0)
+## BUG #1 — `file.stage` silently no-ops on repo-relative paths  (P0) — FIXED (SBAI-4080)
 
-**The dominant manual bug.** The extension stages files using **repo-relative**
+**FIXED in the engine.** `FileStageArgs::into_lore` in
+`crates/lore-vm/src/ops/file/stage.rs` now resolves every relative path against
+the repository root (`--dir` / `api.globals().repository_path`) before handing it
+to `lore::file::stage`; absolute paths pass through unchanged. Fixes the CLI,
+MCP, VS Code extension, and UE plugin at once. The now-LIVE `knownBugs.test.ts`
+BUG#1/#2 guards (flipped from `test.skip` → `test`) plus engine unit tests
+(`stage_args_resolves_relative_paths_against_repo_root`,
+`stage_args_passes_absolute_paths_through`) guard against regression.
+
+**The dominant manual bug (original report).** The extension stages files using **repo-relative**
 paths (`extension.ts` → `resolveResourceTargets()` → `path.relative(repoRoot, uri)`).
 The engine's `file.stage` only stages when given **absolute** paths; with a
 relative path it returns `{"files": [], "revision": ""}` — a silent success that
@@ -86,7 +95,14 @@ second modify→stage→commit cycle also persists.
 
 ---
 
-## BUG #4 — Locks view / lock decorations dead on local (offline) repos  (P2)
+## BUG #4 — Locks view / lock decorations dead on local (offline) repos  (P2) — FIXED (SBAI-4080)
+
+**FIXED.** When `lock.file_query` fails with "No remote configured", the
+`LocksTreeProvider` now sets the `lore.locksNoRemote` context key, which gates a
+`viewsWelcome` entry ("File locks require a connected lore server …") so the
+empty Locks view is explained instead of looking broken. The lock-badge
+decorations remain a non-fatal no-op on local repos (correct — there are no
+locks). The key is cleared as soon as a lock query succeeds.
 
 On a purely-local/offline repo (`lore.offline=true`, no remote), every lock op
 fails with `{"error":{"kind":"CommandFailed","message":"No remote configured"}}`:
