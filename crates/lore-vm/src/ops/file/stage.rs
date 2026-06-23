@@ -77,7 +77,7 @@ impl FileStageArgs {
                 if path.is_absolute() {
                     LoreString::from_str(p)
                 } else {
-                    LoreString::from_path(&repo_root.join(path))
+                    LoreString::from_path(repo_root.join(path))
                 }
             })
             .collect();
