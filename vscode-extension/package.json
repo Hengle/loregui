@@ -2,7 +2,7 @@
   "name": "loregui-lore",
   "displayName": "Lore Source Control",
   "description": "Full source control for Epic Games' lore VCS, driven by the loregui lorevm engine. Native SCM view (stage/unstage/commit/push/sync/revert), side-by-side diff + quick-diff gutter, Branches / History / Locks tree views, status bar, and lock-aware file decorations.",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "publisher": "BiloxiStudios",
   "license": "SEE LICENSE IN LICENSE.txt",
   "author": "Biloxi Studios Inc. (BizaNator)",
@@ -105,6 +105,11 @@
       {
         "view": "lore.branches",
         "contents": "No lore repository detected in this workspace.\nOpen a folder that contains a `.lore` directory.\n[Open Documentation](command:lore.openDocs)\n\nIf the engine is missing, build it or point the extension at it:\n[Set lorevm path](command:lore.openSettings)"
+      },
+      {
+        "view": "lore.locks",
+        "contents": "File locks require a connected lore server.\nThis repository is local/offline, so there are no locks to show.\nConnect to a lore server to acquire and view locks.\n[Open Documentation](command:lore.openDocs)",
+        "when": "lore.locksNoRemote"
       }
     ],
     "commands": [

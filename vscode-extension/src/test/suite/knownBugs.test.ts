@@ -1,15 +1,11 @@
 // knownBugs.test.ts — regression guards for the bug classes the owner hits
 // manually. These assert the DESIRED behavior.
 //
-// BUG#1 and BUG#2 are LIVE in the engine today (file.stage silently no-ops on
-// repo-relative paths — the exact paths the extension sends). They are written
-// as `test.skip` PENDING guards so:
-//   - CI stays green on the current healthy behavior (the 18 real tests gate),
-//   - the bug stays VISIBLE in every run's output as a pending todo,
-//   - the moment the engine fix lands, you delete `.skip` and the guard goes
-//     live — a regression then turns the suite red.
-// To verify the bug yourself right now: change `test.skip` → `test` and run
-// `xvfb-run -a npm test`; both will fail with the documented messages.
+// BUG#1 and BUG#2 are now FIXED in the engine (SBAI-4080): file.stage resolves
+// repo-relative paths against the repository root (--dir), so the exact paths
+// the extension sends now stage correctly and commit persists. These guards are
+// LIVE `test`s — a regression in the engine's relative-path staging turns the
+// suite red. (They were `test.skip` pending guards until the fix landed.)
 //
 // BUG#3 is ACTIVE (it currently passes — sequential absolute-path commits work)
 // and guards that the SBAI-4080 cross-process flush fix stays working.
@@ -53,7 +49,7 @@ suite('Lore — known-bug regression guards (expected RED until fixed)', functio
   // Root: engine resolves stage paths against CWD/absolute, not --dir.
   // Effect: staging from VS Code does nothing → commit fails "Nothing staged".
   // ---------------------------------------------------------------------
-  test.skip('BUG#1: file.stage must honor repo-relative paths (as the extension sends them)', () => {
+  test('BUG#1: file.stage must honor repo-relative paths (as the extension sends them)', () => {
     const repo = freshRepo();
     fs.writeFileSync(path.join(repo, 'rel.txt'), 'content\n');
     const res = op(repo, 'file.stage', { paths: ['rel.txt'], scan: true }) as {
@@ -73,7 +69,7 @@ suite('Lore — known-bug regression guards (expected RED until fixed)', functio
   // and leave the working tree clean across processes. With BUG#1 live, the
   // commit fails ("Nothing staged"). This mirrors the exact extension flow.
   // ---------------------------------------------------------------------
-  test.skip('BUG#2: stage(relative) → commit persists a new revision (cross-process)', () => {
+  test('BUG#2: stage(relative) → commit persists a new revision (cross-process)', () => {
     const repo = freshRepo();
     fs.writeFileSync(path.join(repo, 'a.txt'), 'alpha\n');
 
