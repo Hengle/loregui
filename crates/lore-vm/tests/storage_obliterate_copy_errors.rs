@@ -126,12 +126,9 @@ async fn copy_duplicates_content_into_second_partition() {
         "copied content must be byte-identical to the source"
     );
 
-    ops::storage::close::close(
-        &repo.api,
-        ops::storage::close::StorageCloseArgs { handle },
-    )
-    .await
-    .expect("close should succeed");
+    ops::storage::close::close(&repo.api, ops::storage::close::StorageCloseArgs { handle })
+        .await
+        .expect("close should succeed");
 }
 
 /// `obliterate` removes a stored fragment so a subsequent get misses; a second
@@ -266,12 +263,9 @@ async fn obliterate_removes_then_is_idempotent() {
         "obliterate must be idempotent on an already-gone address: {obl2:?}"
     );
 
-    ops::storage::close::close(
-        &repo.api,
-        ops::storage::close::StorageCloseArgs { handle },
-    )
-    .await
-    .expect("close should succeed");
+    ops::storage::close::close(&repo.api, ops::storage::close::StorageCloseArgs { handle })
+        .await
+        .expect("close should succeed");
 }
 
 /// A get for a never-stored (missing) address surfaces as an OP-LEVEL error.
@@ -332,12 +326,9 @@ async fn missing_address_surfaces_op_level_error() {
         "no output file should be produced for a missing address"
     );
 
-    ops::storage::close::close(
-        &repo.api,
-        ops::storage::close::StorageCloseArgs { handle },
-    )
-    .await
-    .expect("close should succeed");
+    ops::storage::close::close(&repo.api, ops::storage::close::StorageCloseArgs { handle })
+        .await
+        .expect("close should succeed");
 }
 
 /// A malformed (non-hex / wrong-length) address surfaces as an op-level error
@@ -365,10 +356,7 @@ async fn malformed_address_surfaces_an_error() {
         "a malformed address must surface as an Err, got: {result:?}"
     );
 
-    ops::storage::close::close(
-        &repo.api,
-        ops::storage::close::StorageCloseArgs { handle },
-    )
-    .await
-    .expect("close should succeed");
+    ops::storage::close::close(&repo.api, ops::storage::close::StorageCloseArgs { handle })
+        .await
+        .expect("close should succeed");
 }

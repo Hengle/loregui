@@ -2765,10 +2765,12 @@ fn resolve_in_working_tree(root: &std::path::Path, path: &str) -> Result<PathBuf
     // Reject Windows path prefixes / drive-relative roots too (e.g. `C:foo`,
     // `\\server\share`). On non-Windows these never appear; on Windows they
     // would otherwise sneak past the `is_absolute()` check for some forms.
-    if requested
-        .components()
-        .any(|c| matches!(c, std::path::Component::Prefix(_) | std::path::Component::RootDir))
-    {
+    if requested.components().any(|c| {
+        matches!(
+            c,
+            std::path::Component::Prefix(_) | std::path::Component::RootDir
+        )
+    }) {
         return Err(escapes());
     }
 
@@ -3076,14 +3078,14 @@ mod working_tree_path_tests {
     fn rejects_escaping_inputs() {
         let root = Path::new("/srv/repo");
         let escaping = [
-            "/etc/passwd",                 // absolute, taken verbatim by the old code
-            "../../../etc/passwd",         // classic relative traversal
-            "sub/../../repo2/secret",      // climbs out via an interior `..`
-            "/srv/repo-sibling/secret",    // absolute path to a sibling dir
-            "..",                          // bare parent
-            "../",                         // parent with trailing sep
-            "a/../../b",                   // net-negative traversal
-            "/srv/repo/../escape",         // absolute, but resolves outside
+            "/etc/passwd",              // absolute, taken verbatim by the old code
+            "../../../etc/passwd",      // classic relative traversal
+            "sub/../../repo2/secret",   // climbs out via an interior `..`
+            "/srv/repo-sibling/secret", // absolute path to a sibling dir
+            "..",                       // bare parent
+            "../",                      // parent with trailing sep
+            "a/../../b",                // net-negative traversal
+            "/srv/repo/../escape",      // absolute, but resolves outside
         ];
         for p in escaping {
             assert!(

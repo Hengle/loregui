@@ -69,7 +69,11 @@ async fn update_propagates_through_shared_store() {
     let synced = sync(&client_api).await;
     assert!(
         synced.revisions.iter().any(|r| r.revision == rev_v2)
-            || history(&client_api).await.entries.iter().any(|e| e.revision == rev_v2),
+            || history(&client_api)
+                .await
+                .entries
+                .iter()
+                .any(|e| e.revision == rev_v2),
         "client should observe the host's update revision {rev_v2}: {synced:?}"
     );
     assert_eq!(
@@ -114,7 +118,11 @@ async fn delete_propagates_through_shared_store() {
     let synced = sync(&client_api).await;
     assert!(
         synced.revisions.iter().any(|r| r.revision == rev_del)
-            || history(&client_api).await.entries.iter().any(|e| e.revision == rev_del),
+            || history(&client_api)
+                .await
+                .entries
+                .iter()
+                .any(|e| e.revision == rev_del),
         "client should observe the delete revision {rev_del}: {synced:?}"
     );
     assert!(

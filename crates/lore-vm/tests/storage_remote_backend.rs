@@ -60,7 +60,10 @@ async fn open_with_remote_config_local_side_still_roundtrips() {
     // A plausible-looking but unreachable remote endpoint. Offline, the engine
     // must not block on it for purely-local ops.
     let handle = open_with_remote(&repo, "lore://localhost:7777/remote-store").await;
-    assert!(handle != 0, "open with remote should yield a non-zero handle");
+    assert!(
+        handle != 0,
+        "open with remote should yield a non-zero handle"
+    );
 
     const CONTENT: &[u8] = b"local op against a remote-configured store\n";
     let src = repo.work.path().join("remote-cfg.bin");
@@ -118,12 +121,9 @@ async fn open_with_remote_config_local_side_still_roundtrips() {
         "local content must round-trip even with a remote configured"
     );
 
-    ops::storage::close::close(
-        &repo.api,
-        ops::storage::close::StorageCloseArgs { handle },
-    )
-    .await
-    .expect("close should succeed");
+    ops::storage::close::close(&repo.api, ops::storage::close::StorageCloseArgs { handle })
+        .await
+        .expect("close should succeed");
 }
 
 /// `upload` (the local→remote push trait method) against a store with NO remote
@@ -218,12 +218,9 @@ async fn upload_without_remote_surfaces_typed_outcome() {
         }
     }
 
-    ops::storage::close::close(
-        &repo.api,
-        ops::storage::close::StorageCloseArgs { handle },
-    )
-    .await
-    .expect("close should succeed");
+    ops::storage::close::close(&repo.api, ops::storage::close::StorageCloseArgs { handle })
+        .await
+        .expect("close should succeed");
 }
 
 /// `obliterate` with no remote configured reports the remote side as skipped
@@ -296,10 +293,7 @@ async fn obliterate_reports_remote_skipped_without_remote() {
         "with no remote configured, the remote side must be skipped: {item:?}"
     );
 
-    ops::storage::close::close(
-        &repo.api,
-        ops::storage::close::StorageCloseArgs { handle },
-    )
-    .await
-    .expect("close should succeed");
+    ops::storage::close::close(&repo.api, ops::storage::close::StorageCloseArgs { handle })
+        .await
+        .expect("close should succeed");
 }

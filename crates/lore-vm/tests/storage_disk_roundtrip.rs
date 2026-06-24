@@ -93,12 +93,9 @@ async fn put_file_get_file_flush_metadata_roundtrip_on_disk() {
     );
 
     // ---- flush (fsync to disk) ---------------------------------------------
-    ops::storage::flush::flush(
-        &repo.api,
-        ops::storage::flush::StorageFlushArgs { handle },
-    )
-    .await
-    .expect("storage::flush should succeed on disk");
+    ops::storage::flush::flush(&repo.api, ops::storage::flush::StorageFlushArgs { handle })
+        .await
+        .expect("storage::flush should succeed on disk");
 
     // ---- get_metadata ------------------------------------------------------
     // Metadata is fetched without transferring payload bytes; assert the
@@ -156,12 +153,9 @@ async fn put_file_get_file_flush_metadata_roundtrip_on_disk() {
     );
 
     // Cleanup the handle.
-    ops::storage::close::close(
-        &repo.api,
-        ops::storage::close::StorageCloseArgs { handle },
-    )
-    .await
-    .expect("storage::close should succeed");
+    ops::storage::close::close(&repo.api, ops::storage::close::StorageCloseArgs { handle })
+        .await
+        .expect("storage::close should succeed");
 }
 
 /// Hex `(partition, context)` addressing contract: storing the SAME bytes under
@@ -212,7 +206,10 @@ async fn partition_and_context_hex_addressing() {
 
     let zero_ctx_item = put.items.iter().find(|i| i.id == 1).expect("id=1 result");
     let ctx_item = put.items.iter().find(|i| i.id == 2).expect("id=2 result");
-    assert!(zero_ctx_item.ok && ctx_item.ok, "both puts must succeed: {put:?}");
+    assert!(
+        zero_ctx_item.ok && ctx_item.ok,
+        "both puts must succeed: {put:?}"
+    );
 
     // The content hash is the same payload but the full address embeds the
     // context, so the two addresses must differ.
@@ -253,12 +250,9 @@ async fn partition_and_context_hex_addressing() {
         );
     }
 
-    ops::storage::close::close(
-        &repo.api,
-        ops::storage::close::StorageCloseArgs { handle },
-    )
-    .await
-    .expect("storage::close should succeed");
+    ops::storage::close::close(&repo.api, ops::storage::close::StorageCloseArgs { handle })
+        .await
+        .expect("storage::close should succeed");
 }
 
 /// Large-file fragment path: store a payload that exceeds a small
@@ -300,12 +294,9 @@ async fn large_file_chunked_fragments_roundtrip() {
     assert!(put_item.ok, "large put_file reported error: {put_item:?}");
     let address = put_item.address.clone();
 
-    ops::storage::flush::flush(
-        &repo.api,
-        ops::storage::flush::StorageFlushArgs { handle },
-    )
-    .await
-    .expect("flush after large put should succeed");
+    ops::storage::flush::flush(&repo.api, ops::storage::flush::StorageFlushArgs { handle })
+        .await
+        .expect("flush after large put should succeed");
 
     // Metadata content size equals the full (reassembled) byte count even though
     // it is split across many leaf fragments on disk.
@@ -365,12 +356,9 @@ async fn large_file_chunked_fragments_roundtrip() {
         "chunked large file must reassemble byte-for-byte"
     );
 
-    ops::storage::close::close(
-        &repo.api,
-        ops::storage::close::StorageCloseArgs { handle },
-    )
-    .await
-    .expect("storage::close should succeed");
+    ops::storage::close::close(&repo.api, ops::storage::close::StorageCloseArgs { handle })
+        .await
+        .expect("storage::close should succeed");
 
     // Silence the unused-import warning when only this test compiles.
     let _ = on_disk_api;
