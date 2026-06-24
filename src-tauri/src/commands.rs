@@ -136,12 +136,38 @@ impl AppState {
 ///
 /// Every mutating command now calls this (via [`finalized`] for the ops-layer
 /// commands, or directly for the `default_backend` ones) before returning, so
-/// the GUI matches the CLI/FFI durability contract. Errors are swallowed — a
-/// flush failure must not mask the op's own result, and a flush on a read-only
-/// op is harmless.
+/// the GUI matches the CLI/FFI durability contract.
+///
+/// [`lore_vm::finalize`] now returns the flush [`Result`] (SBAI-4080): a flush
+/// failure after a mutating op means the durable write may have been lost, so we
+/// must NOT silently discard it. We can't fail the command on it here (the op's
+/// own result is the contract the UI awaits, and this runs after mutating ops
+/// only), but we surface it: a *benign* "no store open at this path" (read-only
+/// op / non-repo dir) is logged at debug and tolerated, exactly as the CLI/FFI
+/// treat it via [`lore_vm::is_benign_flush_failure`]; any other flush failure is
+/// a possibly-lost write and is logged at `error` so it is never hidden.
 async fn flush_working_tree(dir: PathBuf) {
     let api = LoreApi::new(dir);
-    lore_vm::finalize(&api).await;
+    flush_api(&api).await;
+}
+
+/// Await [`lore_vm::finalize`] for an already-built `api` and consume the flush
+/// [`Result`] (SBAI-4080) the same way [`flush_working_tree`] does: a benign
+/// "no store open" is logged at debug and tolerated; any other flush failure is
+/// a possibly-lost durable write and is logged at `error` so it is never hidden.
+/// Used by the `default_backend`-style commands that hold a local `api` directly.
+async fn flush_api(api: &LoreApi) {
+    if let Err(e) = lore_vm::finalize(api).await {
+        if lore_vm::is_benign_flush_failure(&e) {
+            tracing::debug!(error = %e, "flush: benign flush failure (no store open); tolerated");
+        } else {
+            tracing::error!(
+                error = %e,
+                "flush: durable store flush FAILED after a mutating op — \
+                 the on-disk write may have been lost (SBAI-4080 durability gap)"
+            );
+        }
+    }
 }
 
 /// Shutdown backstop: flush the currently-open working tree's deferred store
@@ -163,8 +189,15 @@ pub(crate) async fn flush_app_state(state: &AppState) {
 /// flush runs on **both** the `Ok` and `Err` paths: a partially-applied mutation
 /// must still be flushed so on-disk state is consistent. See
 /// [`flush_working_tree`] for the full rationale.
+///
+/// `finalize` now returns the flush [`Result`] (SBAI-4080). We keep returning the
+/// op's own `result` to the UI (that's the command contract), but we do **not**
+/// discard a flush failure: a benign "no store open" is logged at debug and
+/// tolerated, any other failure is a possibly-lost durable write and is logged at
+/// `error` — matching the CLI/FFI treatment via
+/// [`lore_vm::is_benign_flush_failure`].
 async fn finalized<T>(api: &LoreApi, result: Result<T, LoreError>) -> Result<T, LoreError> {
-    lore_vm::finalize(api).await;
+    flush_api(api).await;
     result
 }
 
@@ -700,7 +733,7 @@ pub async fn repository_gc(state: State<'_, AppState>) -> Result<GcResult, LoreE
 // --- repository instance_prune ---
 
 use lore_vm::ops::repository::instance_prune::{
-    instance_prune as op_repository_instance_prune, InstancePruneResult, PrunedInstance,
+    instance_prune as op_repository_instance_prune, InstancePruneResult,
 };
 
 #[tauri::command]
@@ -1144,6 +1177,9 @@ pub async fn file_reset_to_last_merged(
 
 use lore_vm::ops::file::diff::{diff as op_file_diff, DiffArgs, FileDiffEntry};
 
+// Arg count is dictated by the frontend IPC contract (one named field per
+// diff option), not freely reducible into a struct here.
+#[allow(clippy::too_many_arguments)]
 #[tauri::command]
 pub async fn file_diff(
     state: State<'_, AppState>,
@@ -1177,6 +1213,9 @@ use lore_vm::ops::revision::sync::{
     sync as op_revision_sync, RevisionSyncArgs, RevisionSyncResult,
 };
 
+// Arg count is dictated by the frontend IPC contract (one named field per sync
+// option), not freely reducible into a struct here.
+#[allow(clippy::too_many_arguments)]
 #[tauri::command]
 pub async fn revision_sync(
     state: State<'_, AppState>,
@@ -1716,7 +1755,7 @@ pub async fn storage_put(
         },
     )
     .await;
-    lore_vm::finalize(&api).await;
+    flush_api(&api).await;
     let result = result?;
 
     let item = result
@@ -1835,7 +1874,7 @@ pub async fn storage_obliterate(state: State<'_, AppState>, key: String) -> Resu
         },
     )
     .await;
-    lore_vm::finalize(&api).await;
+    flush_api(&api).await;
     result?;
 
     state
@@ -2125,7 +2164,7 @@ pub async fn shared_store_create(
         },
     )
     .await;
-    lore_vm::finalize(&api).await;
+    flush_api(&api).await;
     let result = result?;
     Ok(result.path)
 }
@@ -2152,7 +2191,7 @@ pub async fn repository_clone(
         },
     )
     .await;
-    lore_vm::finalize(&api).await;
+    flush_api(&api).await;
     result?;
     *state.working_dir.lock().unwrap_or_else(|e| e.into_inner()) = dest_path;
     Ok(())
@@ -2178,7 +2217,7 @@ pub async fn auth_login_interactive(
         },
     )
     .await;
-    lore_vm::finalize(&api).await;
+    flush_api(&api).await;
     let result = result?;
     Ok(UserInfo {
         id: result.user_id,
@@ -2209,7 +2248,7 @@ pub async fn auth_login_with_token(
         },
     )
     .await;
-    lore_vm::finalize(&api).await;
+    flush_api(&api).await;
     let result = result?;
     Ok(UserInfo {
         id: result.user_id,
