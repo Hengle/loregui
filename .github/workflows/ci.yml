@@ -12,6 +12,12 @@ on:
 jobs:
   core-check:
     runs-on: ubuntu-latest
+    env:
+      # Drop debug info in CI so the lore-vm test-binary link stays under the
+      # github-hosted runner's ~7GB ceiling. With debuginfo the linker OOM'd
+      # (ld: SIGBUS / "ld terminated with signal 7") on the grown test binary.
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
