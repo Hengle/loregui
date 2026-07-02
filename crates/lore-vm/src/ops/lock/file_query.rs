@@ -27,11 +27,18 @@ pub struct FileQueryArgs {
 }
 
 impl FileQueryArgs {
-    fn into_lore(self) -> LoreLockFileQueryArgs {
+    fn into_lore(self, repo_root: &std::path::Path) -> LoreLockFileQueryArgs {
         LoreLockFileQueryArgs {
             branch: LoreString::from_str(&self.branch),
             owner: LoreString::from_str(&self.owner),
-            path: LoreString::from_str(&self.path),
+            path: {
+                let p = std::path::Path::new(&self.path);
+                if p.is_absolute() {
+                    LoreString::from_str(&self.path)
+                } else {
+                    LoreString::from_path(repo_root.join(p))
+                }
+            },
         }
     }
 }
@@ -65,7 +72,10 @@ pub struct FileQueryResult {
 pub async fn file_query(api: &LoreApi, args: FileQueryArgs) -> Result<FileQueryResult> {
     let (callback, rx) = collect_events();
 
-    let status = lore::lock::file_query(api.globals().build(), args.into_lore(), callback).await;
+    let globals = api.globals();
+    let repo_root = globals.repository_path.clone();
+    let status =
+        lore::lock::file_query(globals.build(), args.into_lore(&repo_root), callback).await;
 
     let stream = rx
         .await

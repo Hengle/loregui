@@ -25,9 +25,16 @@ pub struct MetadataListArgs {
 }
 
 impl MetadataListArgs {
-    fn into_lore(self) -> LoreFileMetadataListArgs {
+    fn into_lore(self, repo_root: &std::path::Path) -> LoreFileMetadataListArgs {
         LoreFileMetadataListArgs {
-            path: LoreString::from_str(&self.path),
+            path: {
+                let p = std::path::Path::new(&self.path);
+                if p.is_absolute() {
+                    LoreString::from_str(&self.path)
+                } else {
+                    LoreString::from_path(repo_root.join(p))
+                }
+            },
             revision: LoreString::from_str(&self.revision),
         }
     }
@@ -101,7 +108,10 @@ pub struct MetadataListResult {
 pub async fn metadata_list(api: &LoreApi, args: MetadataListArgs) -> Result<MetadataListResult> {
     let (callback, rx) = collect_events();
 
-    let status = lore::file::metadata_list(api.globals().build(), args.into_lore(), callback).await;
+    let globals = api.globals();
+    let repo_root = globals.repository_path.clone();
+    let status =
+        lore::file::metadata_list(globals.build(), args.into_lore(&repo_root), callback).await;
 
     let stream = rx
         .await

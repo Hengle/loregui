@@ -29,11 +29,18 @@ pub struct FileAcquireAsOwnerArgs {
 }
 
 impl FileAcquireAsOwnerArgs {
-    fn into_lore(self) -> (LoreLockFileAcquireArgs, LoreString) {
+    fn into_lore(self, repo_root: &std::path::Path) -> (LoreLockFileAcquireArgs, LoreString) {
         let lore_paths: Vec<LoreString> = self
             .paths
-            .into_iter()
-            .map(|p| LoreString::from_str(&p))
+            .iter()
+            .map(|p| {
+                let path = std::path::Path::new(p);
+                if path.is_absolute() {
+                    LoreString::from_str(p)
+                } else {
+                    LoreString::from_path(repo_root.join(path))
+                }
+            })
             .collect();
         let args = LoreLockFileAcquireArgs {
             paths: LoreArray::from_vec(lore_paths),
@@ -64,9 +71,11 @@ pub async fn file_acquire_as_owner(
 ) -> Result<FileAcquireAsOwnerResult> {
     let (callback, rx) = collect_events();
 
-    let (lore_args, owner) = args.into_lore();
+    let globals = api.globals();
+    let repo_root = globals.repository_path.clone();
+    let (lore_args, owner) = args.into_lore(&repo_root);
     let status =
-        lore::lock::file_acquire_as_owner(api.globals().build(), lore_args, callback, owner).await;
+        lore::lock::file_acquire_as_owner(globals.build(), lore_args, callback, owner).await;
 
     let stream = rx
         .await

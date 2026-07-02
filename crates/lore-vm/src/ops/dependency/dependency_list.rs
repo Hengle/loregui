@@ -38,7 +38,7 @@ pub struct DependencyListArgs {
 }
 
 impl DependencyListArgs {
-    fn into_lore(self) -> LoreFileDependencyListArgs {
+    fn into_lore(self, repo_root: &std::path::Path) -> LoreFileDependencyListArgs {
         LoreFileDependencyListArgs {
             paths: LoreArray::from_vec(
                 self.paths
@@ -101,8 +101,11 @@ pub async fn dependency_list(
 ) -> Result<DependencyListResult> {
     let (callback, rx) = collect_events();
 
+    let globals = api.globals();
+    let repo_root = globals.repository_path.clone();
     let status =
-        lore::dependency::dependency_list(api.globals().build(), args.into_lore(), callback).await;
+        lore::dependency::dependency_list(globals.build(), args.into_lore(&repo_root), callback)
+            .await;
 
     let stream = rx
         .await
@@ -236,7 +239,7 @@ mod tests {
             tags: vec!["texture".into()],
             depth_limit: 3,
         };
-        let lore_args = args.into_lore();
+        let lore_args = args.into_lore(std::path::Path::new("/repo"));
         assert_eq!(lore_args.paths.as_slice().len(), 2);
         assert_eq!(lore_args.revision.as_str(), "main");
         assert_eq!(lore_args.recursive, 1);

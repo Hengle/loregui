@@ -26,9 +26,16 @@ pub struct UpdateArgs {
 }
 
 impl UpdateArgs {
-    fn into_lore(self) -> LoreLinkUpdateArgs {
+    fn into_lore(self, repo_root: &std::path::Path) -> LoreLinkUpdateArgs {
         LoreLinkUpdateArgs {
-            link_path: LoreString::from_str(&self.link_path),
+            link_path: {
+                let p = std::path::Path::new(&self.link_path);
+                if p.is_absolute() {
+                    LoreString::from_str(&self.link_path)
+                } else {
+                    LoreString::from_path(repo_root.join(p))
+                }
+            },
             pin: LoreString::from_str(&self.pin),
         }
     }
@@ -49,7 +56,9 @@ pub async fn update(api: &LoreApi, args: UpdateArgs) -> Result<UpdateResult> {
     let link_path = args.link_path.clone();
     let (callback, rx) = collect_events();
 
-    let status = lore::link::update(api.globals().build(), args.into_lore(), callback).await;
+    let globals = api.globals();
+    let repo_root = globals.repository_path.clone();
+    let status = lore::link::update(globals.build(), args.into_lore(&repo_root), callback).await;
 
     let stream = rx
         .await
@@ -112,8 +121,8 @@ mod tests {
             link_path: "deps/external".into(),
             pin: "v2.0".into(),
         };
-        let lore_args = args.into_lore();
-        assert_eq!(lore_args.link_path.as_str(), "deps/external");
+        let lore_args = args.into_lore(std::path::Path::new("/repo"));
+        assert_eq!(lore_args.link_path.as_str(), "/repo/deps/external");
         assert_eq!(lore_args.pin.as_str(), "v2.0");
     }
 

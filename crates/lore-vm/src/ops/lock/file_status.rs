@@ -25,11 +25,18 @@ pub struct FileStatusArgs {
 }
 
 impl FileStatusArgs {
-    fn into_lore(self) -> LoreLockFileStatusArgs {
+    fn into_lore(self, repo_root: &std::path::Path) -> LoreLockFileStatusArgs {
         let lore_paths: Vec<LoreString> = self
             .paths
-            .into_iter()
-            .map(|p| LoreString::from_str(&p))
+            .iter()
+            .map(|p| {
+                let path = std::path::Path::new(p);
+                if path.is_absolute() {
+                    LoreString::from_str(p)
+                } else {
+                    LoreString::from_path(repo_root.join(path))
+                }
+            })
             .collect();
         LoreLockFileStatusArgs {
             paths: LoreArray::from_vec(lore_paths),
@@ -63,7 +70,10 @@ pub struct FileStatusResult {
 pub async fn file_status(api: &LoreApi, args: FileStatusArgs) -> Result<FileStatusResult> {
     let (callback, rx) = collect_events();
 
-    let status = lore::lock::file_status(api.globals().build(), args.into_lore(), callback).await;
+    let globals = api.globals();
+    let repo_root = globals.repository_path.clone();
+    let status =
+        lore::lock::file_status(globals.build(), args.into_lore(&repo_root), callback).await;
 
     let stream = rx
         .await
@@ -117,7 +127,7 @@ mod tests {
             paths: vec!["foo.txt".into(), "bar.png".into()],
             branch: "release".into(),
         };
-        let lore_args = args.into_lore();
+        let lore_args = args.into_lore(std::path::Path::new("/repo"));
         assert_eq!(lore_args.branch.as_str(), "release");
         assert_eq!(lore_args.paths.len(), 2);
     }

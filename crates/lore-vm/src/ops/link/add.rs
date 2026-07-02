@@ -38,10 +38,17 @@ fn default_source_path() -> String {
 }
 
 impl AddArgs {
-    fn into_lore(self) -> LoreLinkAddArgs {
+    fn into_lore(self, repo_root: &std::path::Path) -> LoreLinkAddArgs {
         LoreLinkAddArgs {
             link: LoreString::from_str(&self.link),
-            link_path: LoreString::from_str(&self.link_path),
+            link_path: {
+                let p = std::path::Path::new(&self.link_path);
+                if p.is_absolute() {
+                    LoreString::from_str(&self.link_path)
+                } else {
+                    LoreString::from_path(repo_root.join(p))
+                }
+            },
             source_path: LoreString::from_str(&self.source_path),
             pin: LoreString::from_str(&self.pin),
             disable_branching: u8::from(self.disable_branching),
@@ -64,7 +71,9 @@ pub async fn add(api: &LoreApi, args: AddArgs) -> Result<AddResult> {
     let link_path = args.link_path.clone();
     let (callback, rx) = collect_events();
 
-    let status = lore::link::add(api.globals().build(), args.into_lore(), callback).await;
+    let globals = api.globals();
+    let repo_root = globals.repository_path.clone();
+    let status = lore::link::add(globals.build(), args.into_lore(&repo_root), callback).await;
 
     let stream = rx
         .await
@@ -128,9 +137,9 @@ mod tests {
             pin: "main".into(),
             disable_branching: true,
         };
-        let lore_args = args.into_lore();
+        let lore_args = args.into_lore(std::path::Path::new("/repo"));
         assert_eq!(lore_args.link.as_str(), "https://example.com/repo");
-        assert_eq!(lore_args.link_path.as_str(), "deps/external");
+        assert_eq!(lore_args.link_path.as_str(), "/repo/deps/external");
         assert_eq!(lore_args.source_path.as_str(), "/");
         assert_eq!(lore_args.pin.as_str(), "main");
         assert_eq!(lore_args.disable_branching, 1);
@@ -145,7 +154,7 @@ mod tests {
             pin: "".into(),
             disable_branching: false,
         };
-        let lore_args = args.into_lore();
+        let lore_args = args.into_lore(std::path::Path::new("/repo"));
         assert_eq!(lore_args.disable_branching, 0);
     }
 

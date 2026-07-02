@@ -34,9 +34,16 @@ pub struct FileHistoryArgs {
 }
 
 impl FileHistoryArgs {
-    fn into_lore(self) -> LoreFileHistoryArgs {
+    fn into_lore(self, repo_root: &std::path::Path) -> LoreFileHistoryArgs {
         LoreFileHistoryArgs {
-            path: LoreString::from_str(&self.path),
+            path: {
+                let p = std::path::Path::new(&self.path);
+                if p.is_absolute() {
+                    LoreString::from_str(&self.path)
+                } else {
+                    LoreString::from_path(repo_root.join(p))
+                }
+            },
             revision: LoreString::from_str(&self.revision),
             branch: LoreString::from_str(&self.branch),
             length: self.length,
@@ -91,7 +98,9 @@ pub struct FileHistoryResult {
 pub async fn history(api: &LoreApi, args: FileHistoryArgs) -> Result<FileHistoryResult> {
     let (callback, rx) = collect_events();
 
-    let status = lore::file::history(api.globals().build(), args.into_lore(), callback).await;
+    let globals = api.globals();
+    let repo_root = globals.repository_path.clone();
+    let status = lore::file::history(globals.build(), args.into_lore(&repo_root), callback).await;
 
     let stream = rx
         .await
@@ -179,8 +188,8 @@ mod tests {
             length: 25,
             depth: 5,
         };
-        let lore_args = args.into_lore();
-        assert_eq!(lore_args.path.as_str(), "assets/texture.png");
+        let lore_args = args.into_lore(std::path::Path::new("/repo"));
+        assert_eq!(lore_args.path.as_str(), "/repo/assets/texture.png");
         assert_eq!(lore_args.revision.as_str(), "rev1");
         assert_eq!(lore_args.branch.as_str(), "main");
         assert_eq!(lore_args.length, 25);

@@ -32,10 +32,17 @@ pub struct FileWriteArgs {
 }
 
 impl FileWriteArgs {
-    fn into_lore(self) -> LoreFileWriteArgs {
+    fn into_lore(self, repo_root: &std::path::Path) -> LoreFileWriteArgs {
         LoreFileWriteArgs {
             address: LoreString::from_str(&self.address),
-            path: LoreString::from_str(&self.path),
+            path: {
+                let p = std::path::Path::new(&self.path);
+                if p.is_absolute() {
+                    LoreString::from_str(&self.path)
+                } else {
+                    LoreString::from_path(repo_root.join(p))
+                }
+            },
             revision: LoreString::from_str(&self.revision),
             output: LoreString::from_str(&self.output),
         }
@@ -56,7 +63,9 @@ pub struct FileWriteResult {
 pub async fn write(api: &LoreApi, args: FileWriteArgs) -> Result<FileWriteResult> {
     let (callback, rx) = collect_events();
 
-    let status = lore::file::write(api.globals().build(), args.into_lore(), callback).await;
+    let globals = api.globals();
+    let repo_root = globals.repository_path.clone();
+    let status = lore::file::write(globals.build(), args.into_lore(&repo_root), callback).await;
 
     let stream = rx
         .await
@@ -115,9 +124,9 @@ mod tests {
             revision: String::new(),
             output: "/tmp/out.bin".into(),
         };
-        let lore_args = args.into_lore();
+        let lore_args = args.into_lore(std::path::Path::new("/repo"));
         assert_eq!(lore_args.address.as_str(), "addr-abc");
-        assert!(lore_args.path.as_str().is_empty());
+        assert_eq!(lore_args.path.as_str(), "/repo/");
         assert_eq!(lore_args.output.as_str(), "/tmp/out.bin");
     }
 
@@ -129,9 +138,9 @@ mod tests {
             revision: "rev42".into(),
             output: "/tmp/texture.png".into(),
         };
-        let lore_args = args.into_lore();
+        let lore_args = args.into_lore(std::path::Path::new("/repo"));
         assert!(lore_args.address.as_str().is_empty());
-        assert_eq!(lore_args.path.as_str(), "assets/texture.png");
+        assert_eq!(lore_args.path.as_str(), "/repo/assets/texture.png");
         assert_eq!(lore_args.revision.as_str(), "rev42");
         assert_eq!(lore_args.output.as_str(), "/tmp/texture.png");
     }

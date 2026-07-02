@@ -22,12 +22,19 @@ pub struct RevertResolveTheirsArgs {
 }
 
 impl RevertResolveTheirsArgs {
-    fn into_lore(self) -> LoreRevisionRevertResolveTheirsArgs {
+    fn into_lore(self, repo_root: &std::path::Path) -> LoreRevisionRevertResolveTheirsArgs {
         LoreRevisionRevertResolveTheirsArgs {
             paths: lore::interface::LoreArray::from_vec(
                 self.paths
-                    .into_iter()
-                    .map(|p| LoreString::from_str(&p))
+                    .iter()
+                    .map(|p| {
+                        let path = std::path::Path::new(p);
+                        if path.is_absolute() {
+                            LoreString::from_str(p)
+                        } else {
+                            LoreString::from_path(repo_root.join(path))
+                        }
+                    })
                     .collect(),
             ),
         }
@@ -53,9 +60,14 @@ pub async fn revert_resolve_theirs(
 
     let (callback, rx) = collect_events();
 
-    let status =
-        lore::revision::revert_resolve_theirs(api.globals().build(), args.into_lore(), callback)
-            .await;
+    let globals = api.globals();
+    let repo_root = globals.repository_path.clone();
+    let status = lore::revision::revert_resolve_theirs(
+        globals.build(),
+        args.into_lore(&repo_root),
+        callback,
+    )
+    .await;
 
     let stream = rx
         .await
@@ -122,7 +134,7 @@ mod tests {
         let args = RevertResolveTheirsArgs {
             paths: vec!["a.txt".into()],
         };
-        let lore_args = args.into_lore();
+        let lore_args = args.into_lore(std::path::Path::new("/repo"));
         assert_eq!(lore_args.paths.len(), 1);
     }
 }

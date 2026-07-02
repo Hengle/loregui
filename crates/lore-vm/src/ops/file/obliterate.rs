@@ -26,10 +26,17 @@ pub struct FileObliterateArgs {
 }
 
 impl FileObliterateArgs {
-    fn into_lore(self) -> LoreFileObliterateArgs {
+    fn into_lore(self, repo_root: &std::path::Path) -> LoreFileObliterateArgs {
         LoreFileObliterateArgs {
             address: LoreString::from_str(&self.address),
-            path: LoreString::from_str(&self.path),
+            path: {
+                let p = std::path::Path::new(&self.path);
+                if p.is_absolute() {
+                    LoreString::from_str(&self.path)
+                } else {
+                    LoreString::from_path(repo_root.join(p))
+                }
+            },
         }
     }
 }
@@ -59,7 +66,10 @@ pub struct FileObliterateResult {
 pub async fn obliterate(api: &LoreApi, args: FileObliterateArgs) -> Result<FileObliterateResult> {
     let (callback, rx) = collect_events();
 
-    let status = lore::file::obliterate(api.globals().build(), args.into_lore(), callback).await;
+    let globals = api.globals();
+    let repo_root = globals.repository_path.clone();
+    let status =
+        lore::file::obliterate(globals.build(), args.into_lore(&repo_root), callback).await;
 
     let stream = rx
         .await
@@ -134,8 +144,8 @@ mod tests {
             address: String::new(),
             path: "hello.md".into(),
         };
-        let lore_args = args.into_lore();
-        assert_eq!(lore_args.path.as_str(), "hello.md");
+        let lore_args = args.into_lore(std::path::Path::new("/repo"));
+        assert_eq!(lore_args.path.as_str(), "/repo/hello.md");
         assert!(lore_args.address.is_empty());
     }
 

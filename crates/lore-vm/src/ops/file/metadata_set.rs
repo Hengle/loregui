@@ -80,12 +80,19 @@ pub struct MetadataSetArgs {
 }
 
 impl MetadataSetArgs {
-    fn into_lore(self) -> LoreFileMetadataSetArgs {
+    fn into_lore(self, repo_root: &std::path::Path) -> LoreFileMetadataSetArgs {
         LoreFileMetadataSetArgs {
-            paths: LoreArray::from_vec(
+            paths: lore::interface::LoreArray::from_vec(
                 self.paths
-                    .into_iter()
-                    .map(|p| LoreString::from_str(&p))
+                    .iter()
+                    .map(|p| {
+                        let path = std::path::Path::new(p);
+                        if path.is_absolute() {
+                            LoreString::from_str(p)
+                        } else {
+                            LoreString::from_path(repo_root.join(path))
+                        }
+                    })
                     .collect(),
             ),
             keys: LoreArray::from_vec(
@@ -141,7 +148,10 @@ pub async fn metadata_set(api: &LoreApi, args: MetadataSetArgs) -> Result<Metada
 
     let (callback, rx) = collect_events();
 
-    let status = lore::file::metadata_set(api.globals().build(), args.into_lore(), callback).await;
+    let globals = api.globals();
+    let repo_root = globals.repository_path.clone();
+    let status =
+        lore::file::metadata_set(globals.build(), args.into_lore(&repo_root), callback).await;
 
     let stream = rx
         .await

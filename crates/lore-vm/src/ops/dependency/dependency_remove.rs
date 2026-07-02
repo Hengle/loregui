@@ -48,7 +48,7 @@ pub struct DependencyRemoveArgs {
 }
 
 impl DependencyRemoveArgs {
-    fn into_lore(self) -> LoreFileDependencyRemoveArgs {
+    fn into_lore(self, repo_root: &std::path::Path) -> LoreFileDependencyRemoveArgs {
         let mut paths = Vec::new();
         let mut dependencies = Vec::new();
         let mut tags = Vec::new();
@@ -56,11 +56,25 @@ impl DependencyRemoveArgs {
         let mut tag_counts = Vec::new();
 
         for source in &self.sources {
-            paths.push(LoreString::from_str(&source.path));
+            paths.push({
+                let path = std::path::Path::new(&source.path);
+                if path.is_absolute() {
+                    LoreString::from_str(&source.path)
+                } else {
+                    LoreString::from_path(repo_root.join(path))
+                }
+            });
             dep_counts.push(source.dependencies.len() as u32);
 
             for entry in &source.dependencies {
-                dependencies.push(LoreString::from_str(&entry.dependency));
+                dependencies.push({
+                    let path = std::path::Path::new(&entry.dependency);
+                    if path.is_absolute() {
+                        LoreString::from_str(&entry.dependency)
+                    } else {
+                        LoreString::from_path(repo_root.join(path))
+                    }
+                });
                 tag_counts.push(entry.tags.len() as u32);
 
                 for tag in &entry.tags {
@@ -96,8 +110,10 @@ pub async fn dependency_remove(
 ) -> Result<DependencyRemoveResult> {
     let (callback, rx) = collect_events();
 
+    let globals = api.globals();
+    let repo_root = globals.repository_path.clone();
     let status =
-        lore::dependency::dependency_remove(api.globals().build(), args.into_lore(), callback)
+        lore::dependency::dependency_remove(globals.build(), args.into_lore(&repo_root), callback)
             .await;
 
     let stream = rx
@@ -169,7 +185,7 @@ mod tests {
                 }],
             }],
         };
-        let lore_args = args.into_lore();
+        let lore_args = args.into_lore(std::path::Path::new("/repo"));
         assert_eq!(lore_args.paths.len(), 1);
         assert_eq!(lore_args.dependencies.len(), 1);
         assert_eq!(lore_args.dep_counts.len(), 1);
@@ -201,7 +217,7 @@ mod tests {
                 },
             ],
         };
-        let lore_args = args.into_lore();
+        let lore_args = args.into_lore(std::path::Path::new("/repo"));
         assert_eq!(lore_args.paths.len(), 2);
         assert_eq!(lore_args.dependencies.len(), 2);
         assert_eq!(lore_args.tags.len(), 3);

@@ -23,9 +23,16 @@ pub struct RemoveArgs {
 }
 
 impl RemoveArgs {
-    fn into_lore(self) -> LoreLinkRemoveArgs {
+    fn into_lore(self, repo_root: &std::path::Path) -> LoreLinkRemoveArgs {
         LoreLinkRemoveArgs {
-            link_path: LoreString::from_str(&self.link_path),
+            link_path: {
+                let p = std::path::Path::new(&self.link_path);
+                if p.is_absolute() {
+                    LoreString::from_str(&self.link_path)
+                } else {
+                    LoreString::from_path(repo_root.join(p))
+                }
+            },
         }
     }
 }
@@ -45,7 +52,9 @@ pub async fn remove(api: &LoreApi, args: RemoveArgs) -> Result<RemoveResult> {
     let link_path = args.link_path.clone();
     let (callback, rx) = collect_events();
 
-    let status = lore::link::remove(api.globals().build(), args.into_lore(), callback).await;
+    let globals = api.globals();
+    let repo_root = globals.repository_path.clone();
+    let status = lore::link::remove(globals.build(), args.into_lore(&repo_root), callback).await;
 
     let stream = rx
         .await
@@ -96,8 +105,8 @@ mod tests {
         let args = RemoveArgs {
             link_path: "deps/external".into(),
         };
-        let lore_args = args.into_lore();
-        assert_eq!(lore_args.link_path.as_str(), "deps/external");
+        let lore_args = args.into_lore(std::path::Path::new("/repo"));
+        assert_eq!(lore_args.link_path.as_str(), "/repo/deps/external");
     }
 
     #[test]

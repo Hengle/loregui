@@ -22,12 +22,19 @@ pub struct CherryPickResolveArgs {
 }
 
 impl CherryPickResolveArgs {
-    fn into_lore(self) -> LoreRevisionCherryPickResolveArgs {
+    fn into_lore(self, repo_root: &std::path::Path) -> LoreRevisionCherryPickResolveArgs {
         LoreRevisionCherryPickResolveArgs {
             paths: lore::interface::LoreArray::from_vec(
                 self.paths
-                    .into_iter()
-                    .map(|p| LoreString::from_str(&p))
+                    .iter()
+                    .map(|p| {
+                        let path = std::path::Path::new(p);
+                        if path.is_absolute() {
+                            LoreString::from_str(p)
+                        } else {
+                            LoreString::from_path(repo_root.join(path))
+                        }
+                    })
                     .collect(),
             ),
         }
@@ -55,8 +62,10 @@ pub async fn cherry_pick_resolve(
 ) -> Result<CherryPickResolveResult> {
     let (callback, rx) = collect_events();
 
+    let globals = api.globals();
+    let repo_root = globals.repository_path.clone();
     let status =
-        lore::revision::cherry_pick_resolve(api.globals().build(), args.into_lore(), callback)
+        lore::revision::cherry_pick_resolve(globals.build(), args.into_lore(&repo_root), callback)
             .await;
 
     let stream = rx
@@ -136,7 +145,7 @@ mod tests {
         let args = CherryPickResolveArgs {
             paths: vec!["a.txt".into()],
         };
-        let lore_args = args.into_lore();
+        let lore_args = args.into_lore(std::path::Path::new("/repo"));
         assert_eq!(lore_args.paths.len(), 1);
     }
 }

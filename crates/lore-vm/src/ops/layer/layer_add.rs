@@ -32,9 +32,16 @@ pub struct LayerAddArgs {
 }
 
 impl LayerAddArgs {
-    fn into_lore(self) -> LoreLayerAddArgs {
+    fn into_lore(self, repo_root: &std::path::Path) -> LoreLayerAddArgs {
         LoreLayerAddArgs {
-            target_path: LoreString::from_str(&self.target_path),
+            target_path: {
+                let p = std::path::Path::new(&self.target_path);
+                if p.is_absolute() {
+                    LoreString::from_str(&self.target_path)
+                } else {
+                    LoreString::from_path(repo_root.join(p))
+                }
+            },
             source_repository: LoreString::from_str(&self.source_repository),
             source_path: LoreString::from_str(&self.source_path),
             metadata: LoreString::from_str(&self.metadata),
@@ -72,7 +79,10 @@ pub async fn layer_add(api: &LoreApi, args: LayerAddArgs) -> Result<LayerAddResu
     let source_path_req = args.source_path.clone();
     let metadata_req = args.metadata.clone();
 
-    let status = lore::layer::layer_add(api.globals().build(), args.into_lore(), callback).await;
+    let globals = api.globals();
+    let repo_root = globals.repository_path.clone();
+    let status =
+        lore::layer::layer_add(globals.build(), args.into_lore(&repo_root), callback).await;
 
     let stream = rx
         .await
@@ -146,7 +156,7 @@ mod tests {
             source_path: "/".into(),
             metadata: "branch".into(),
         };
-        let lore_args = args.into_lore();
+        let lore_args = args.into_lore(std::path::Path::new("/repo"));
         assert_eq!(lore_args.target_path.as_str(), "/layers/assets");
         assert_eq!(
             lore_args.source_repository.as_str(),

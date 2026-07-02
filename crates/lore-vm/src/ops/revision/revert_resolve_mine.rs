@@ -22,12 +22,19 @@ pub struct RevertResolveMineArgs {
 }
 
 impl RevertResolveMineArgs {
-    fn into_lore(self) -> LoreRevisionRevertResolveMineArgs {
+    fn into_lore(self, repo_root: &std::path::Path) -> LoreRevisionRevertResolveMineArgs {
         LoreRevisionRevertResolveMineArgs {
             paths: lore::interface::LoreArray::from_vec(
                 self.paths
-                    .into_iter()
-                    .map(|p| LoreString::from_str(&p))
+                    .iter()
+                    .map(|p| {
+                        let path = std::path::Path::new(p);
+                        if path.is_absolute() {
+                            LoreString::from_str(p)
+                        } else {
+                            LoreString::from_path(repo_root.join(path))
+                        }
+                    })
                     .collect(),
             ),
         }
@@ -53,8 +60,10 @@ pub async fn revert_resolve_mine(
 
     let (callback, rx) = collect_events();
 
+    let globals = api.globals();
+    let repo_root = globals.repository_path.clone();
     let status =
-        lore::revision::revert_resolve_mine(api.globals().build(), args.into_lore(), callback)
+        lore::revision::revert_resolve_mine(globals.build(), args.into_lore(&repo_root), callback)
             .await;
 
     let stream = rx
@@ -121,7 +130,7 @@ mod tests {
         let args = RevertResolveMineArgs {
             paths: vec!["a.txt".into()],
         };
-        let lore_args = args.into_lore();
+        let lore_args = args.into_lore(std::path::Path::new("/repo"));
         assert_eq!(lore_args.paths.len(), 1);
     }
 }

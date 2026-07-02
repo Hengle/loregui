@@ -28,9 +28,16 @@ pub struct LayerRemoveArgs {
 }
 
 impl LayerRemoveArgs {
-    fn into_lore(self) -> LoreLayerRemoveArgs {
+    fn into_lore(self, repo_root: &std::path::Path) -> LoreLayerRemoveArgs {
         LoreLayerRemoveArgs {
-            target_path: LoreString::from_str(&self.target_path),
+            target_path: {
+                let p = std::path::Path::new(&self.target_path);
+                if p.is_absolute() {
+                    LoreString::from_str(&self.target_path)
+                } else {
+                    LoreString::from_path(repo_root.join(p))
+                }
+            },
             source_repository: LoreString::from_str(&self.source_repository),
             purge: u8::from(self.purge),
         }
@@ -56,7 +63,10 @@ pub async fn layer_remove(api: &LoreApi, args: LayerRemoveArgs) -> Result<LayerR
     let target_path_clone = args.target_path.clone();
     let source_repo_clone = args.source_repository.clone();
 
-    let status = lore::layer::layer_remove(api.globals().build(), args.into_lore(), callback).await;
+    let globals = api.globals();
+    let repo_root = globals.repository_path.clone();
+    let status =
+        lore::layer::layer_remove(globals.build(), args.into_lore(&repo_root), callback).await;
 
     let stream = rx
         .await
@@ -114,7 +124,7 @@ mod tests {
             source_repository: "https://example.com/repo".into(),
             purge: true,
         };
-        let lore_args = args.into_lore();
+        let lore_args = args.into_lore(std::path::Path::new("/repo"));
         assert_eq!(lore_args.target_path.as_str(), "/layer");
         assert_eq!(
             lore_args.source_repository.as_str(),

@@ -29,11 +29,18 @@ pub struct FileReleaseArgs {
 }
 
 impl FileReleaseArgs {
-    fn into_lore(self) -> LoreLockFileReleaseArgs {
+    fn into_lore(self, repo_root: &std::path::Path) -> LoreLockFileReleaseArgs {
         let lore_paths: Vec<LoreString> = self
             .paths
-            .into_iter()
-            .map(|p| LoreString::from_str(&p))
+            .iter()
+            .map(|p| {
+                let path = std::path::Path::new(p);
+                if path.is_absolute() {
+                    LoreString::from_str(p)
+                } else {
+                    LoreString::from_path(repo_root.join(path))
+                }
+            })
             .collect();
         LoreLockFileReleaseArgs {
             paths: LoreArray::from_vec(lore_paths),
@@ -61,7 +68,10 @@ pub struct FileReleaseResult {
 pub async fn file_release(api: &LoreApi, args: FileReleaseArgs) -> Result<FileReleaseResult> {
     let (callback, rx) = collect_events();
 
-    let status = lore::lock::file_release(api.globals().build(), args.into_lore(), callback).await;
+    let globals = api.globals();
+    let repo_root = globals.repository_path.clone();
+    let status =
+        lore::lock::file_release(globals.build(), args.into_lore(&repo_root), callback).await;
 
     let stream = rx
         .await

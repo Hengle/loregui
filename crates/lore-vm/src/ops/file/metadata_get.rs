@@ -27,9 +27,16 @@ pub struct MetadataGetArgs {
 }
 
 impl MetadataGetArgs {
-    fn into_lore(self) -> LoreFileMetadataGetArgs {
+    fn into_lore(self, repo_root: &std::path::Path) -> LoreFileMetadataGetArgs {
         LoreFileMetadataGetArgs {
-            path: LoreString::from_str(&self.path),
+            path: {
+                let p = std::path::Path::new(&self.path);
+                if p.is_absolute() {
+                    LoreString::from_str(&self.path)
+                } else {
+                    LoreString::from_path(repo_root.join(p))
+                }
+            },
             key: LoreString::from_str(&self.key),
             revision: LoreString::from_str(&self.revision),
         }
@@ -90,7 +97,10 @@ pub struct MetadataGetResult {
 pub async fn metadata_get(api: &LoreApi, args: MetadataGetArgs) -> Result<MetadataGetResult> {
     let (callback, rx) = collect_events();
 
-    let status = lore::file::metadata_get(api.globals().build(), args.into_lore(), callback).await;
+    let globals = api.globals();
+    let repo_root = globals.repository_path.clone();
+    let status =
+        lore::file::metadata_get(globals.build(), args.into_lore(&repo_root), callback).await;
 
     let stream = rx
         .await

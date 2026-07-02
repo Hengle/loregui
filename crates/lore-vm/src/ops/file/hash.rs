@@ -22,12 +22,19 @@ pub struct FileHashArgs {
 }
 
 impl FileHashArgs {
-    fn into_lore(self) -> LoreFileHashArgs {
+    fn into_lore(self, repo_root: &std::path::Path) -> LoreFileHashArgs {
         LoreFileHashArgs {
             paths: lore::interface::LoreArray::from_vec(
                 self.paths
-                    .into_iter()
-                    .map(|p| LoreString::from_str(&p))
+                    .iter()
+                    .map(|p| {
+                        let path = std::path::Path::new(p);
+                        if path.is_absolute() {
+                            LoreString::from_str(p)
+                        } else {
+                            LoreString::from_path(repo_root.join(path))
+                        }
+                    })
                     .collect(),
             ),
         }
@@ -59,7 +66,9 @@ pub struct FileHashResult {
 pub async fn hash(api: &LoreApi, args: FileHashArgs) -> Result<FileHashResult> {
     let (callback, rx) = collect_events();
 
-    let status = lore::file::hash(api.globals().build(), args.into_lore(), callback).await;
+    let globals = api.globals();
+    let repo_root = globals.repository_path.clone();
+    let status = lore::file::hash(globals.build(), args.into_lore(&repo_root), callback).await;
 
     let stream = rx
         .await
@@ -116,10 +125,10 @@ mod tests {
         let args = FileHashArgs {
             paths: vec!["hello.md".into()],
         };
-        let lore_args = args.into_lore();
+        let lore_args = args.into_lore(std::path::Path::new("/repo"));
         let slice = lore_args.paths.as_slice();
         assert_eq!(slice.len(), 1);
-        assert_eq!(slice[0].as_str(), "hello.md");
+        assert_eq!(slice[0].as_str(), "/repo/hello.md");
     }
 
     #[test]

@@ -28,9 +28,19 @@ pub struct FileDirtyArgs {
 }
 
 impl FileDirtyArgs {
-    fn into_lore(self) -> LoreFileDirtyArgs {
-        let lore_paths: Vec<LoreString> =
-            self.paths.iter().map(|p| LoreString::from_str(p)).collect();
+    fn into_lore(self, repo_root: &std::path::Path) -> LoreFileDirtyArgs {
+        let lore_paths: Vec<LoreString> = self
+            .paths
+            .iter()
+            .map(|p| {
+                let path = std::path::Path::new(p);
+                if path.is_absolute() {
+                    LoreString::from_str(p)
+                } else {
+                    LoreString::from_path(repo_root.join(path))
+                }
+            })
+            .collect();
         LoreFileDirtyArgs {
             paths: LoreArray::from_vec(lore_paths),
         }
@@ -54,7 +64,9 @@ pub async fn dirty(api: &LoreApi, args: FileDirtyArgs) -> Result<FileDirtyResult
 
     let (callback, rx) = collect_events();
 
-    let status = lore::file::dirty(api.globals().build(), args.into_lore(), callback).await;
+    let globals = api.globals();
+    let repo_root = globals.repository_path.clone();
+    let status = lore::file::dirty(globals.build(), args.into_lore(&repo_root), callback).await;
 
     let stream = rx
         .await
@@ -95,7 +107,7 @@ mod tests {
         let args = FileDirtyArgs {
             paths: vec!["a.txt".into(), "b.txt".into()],
         };
-        let lore_args = args.into_lore();
+        let lore_args = args.into_lore(std::path::Path::new("/repo"));
         assert_eq!(lore_args.paths.len(), 2);
     }
 

@@ -23,9 +23,19 @@ pub struct FileUnstageArgs {
 }
 
 impl FileUnstageArgs {
-    fn into_lore(self) -> LoreFileUnstageArgs {
-        let lore_paths: Vec<LoreString> =
-            self.paths.iter().map(|p| LoreString::from_str(p)).collect();
+    fn into_lore(self, repo_root: &std::path::Path) -> LoreFileUnstageArgs {
+        let lore_paths: Vec<LoreString> = self
+            .paths
+            .iter()
+            .map(|p| {
+                let path = std::path::Path::new(p);
+                if path.is_absolute() {
+                    LoreString::from_str(p)
+                } else {
+                    LoreString::from_path(repo_root.join(path))
+                }
+            })
+            .collect();
         LoreFileUnstageArgs {
             paths: LoreArray::from_vec(lore_paths),
         }
@@ -77,7 +87,9 @@ fn action_to_string(action: &lore::interface::LoreFileAction) -> String {
 pub async fn unstage(api: &LoreApi, args: FileUnstageArgs) -> Result<FileUnstageResult> {
     let (callback, rx) = collect_events();
 
-    let status = lore::file::unstage(api.globals().build(), args.into_lore(), callback).await;
+    let globals = api.globals();
+    let repo_root = globals.repository_path.clone();
+    let status = lore::file::unstage(globals.build(), args.into_lore(&repo_root), callback).await;
 
     let stream = rx
         .await
@@ -149,7 +161,7 @@ mod tests {
         let args = FileUnstageArgs {
             paths: vec!["hello.md".into(), "world.txt".into()],
         };
-        let lore_args = args.into_lore();
+        let lore_args = args.into_lore(std::path::Path::new("/repo"));
         assert_eq!(lore_args.paths.len(), 2);
     }
 

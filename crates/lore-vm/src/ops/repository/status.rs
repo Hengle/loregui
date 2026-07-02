@@ -46,9 +46,19 @@ pub struct RepositoryStatusArgs {
 }
 
 impl RepositoryStatusArgs {
-    fn into_lore(self) -> LoreRepositoryStatusArgs {
-        let lore_paths: Vec<LoreString> =
-            self.paths.iter().map(|p| LoreString::from_str(p)).collect();
+    fn into_lore(self, repo_root: &std::path::Path) -> LoreRepositoryStatusArgs {
+        let lore_paths: Vec<LoreString> = self
+            .paths
+            .iter()
+            .map(|p| {
+                let path = std::path::Path::new(p);
+                if path.is_absolute() {
+                    LoreString::from_str(p)
+                } else {
+                    LoreString::from_path(repo_root.join(path))
+                }
+            })
+            .collect();
         LoreRepositoryStatusArgs {
             staged: u8::from(self.staged),
             scan: u8::from(self.scan),
@@ -173,7 +183,10 @@ fn hash_or_empty(hash: &lore::interface::Hash) -> String {
 pub async fn status(api: &LoreApi, args: RepositoryStatusArgs) -> Result<RepositoryStatusResult> {
     let (callback, rx) = collect_events();
 
-    let status = lore::repository::status(api.globals().build(), args.into_lore(), callback).await;
+    let globals = api.globals();
+    let repo_root = globals.repository_path.clone();
+    let status =
+        lore::repository::status(globals.build(), args.into_lore(&repo_root), callback).await;
 
     let stream = rx
         .await
@@ -245,7 +258,7 @@ mod tests {
             paths: vec!["a.txt".into()],
             ..Default::default()
         };
-        let lore_args = args.into_lore();
+        let lore_args = args.into_lore(std::path::Path::new("/repo"));
         assert_eq!(lore_args.staged, 1);
         assert_eq!(lore_args.count, 1);
         assert_eq!(lore_args.paths.len(), 1);

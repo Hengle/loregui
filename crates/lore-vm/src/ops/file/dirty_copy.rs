@@ -25,10 +25,24 @@ pub struct FileDirtyCopyArgs {
 }
 
 impl FileDirtyCopyArgs {
-    fn into_lore(self) -> LoreFileDirtyCopyArgs {
+    fn into_lore(self, repo_root: &std::path::Path) -> LoreFileDirtyCopyArgs {
         LoreFileDirtyCopyArgs {
-            from_path: LoreString::from_str(&self.from_path),
-            to_path: LoreString::from_str(&self.to_path),
+            from_path: {
+                let p = std::path::Path::new(&self.from_path);
+                if p.is_absolute() {
+                    LoreString::from_str(&self.from_path)
+                } else {
+                    LoreString::from_path(repo_root.join(p))
+                }
+            },
+            to_path: {
+                let p = std::path::Path::new(&self.to_path);
+                if p.is_absolute() {
+                    LoreString::from_str(&self.to_path)
+                } else {
+                    LoreString::from_path(repo_root.join(p))
+                }
+            },
         }
     }
 }
@@ -53,7 +67,10 @@ pub async fn dirty_copy(api: &LoreApi, args: FileDirtyCopyArgs) -> Result<FileDi
 
     let (callback, rx) = collect_events();
 
-    let status = lore::file::dirty_copy(api.globals().build(), args.into_lore(), callback).await;
+    let globals = api.globals();
+    let repo_root = globals.repository_path.clone();
+    let status =
+        lore::file::dirty_copy(globals.build(), args.into_lore(&repo_root), callback).await;
 
     let stream = rx
         .await
@@ -100,9 +117,9 @@ mod tests {
             from_path: "hello.md".into(),
             to_path: "hello_copy.md".into(),
         };
-        let lore_args = args.into_lore();
-        assert_eq!(lore_args.from_path.as_str(), "hello.md");
-        assert_eq!(lore_args.to_path.as_str(), "hello_copy.md");
+        let lore_args = args.into_lore(std::path::Path::new("/repo"));
+        assert_eq!(lore_args.from_path.as_str(), "/repo/hello.md");
+        assert_eq!(lore_args.to_path.as_str(), "/repo/hello_copy.md");
     }
 
     #[test]

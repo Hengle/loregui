@@ -29,9 +29,19 @@ pub struct FileResetToLastMergedArgs {
 }
 
 impl FileResetToLastMergedArgs {
-    fn into_lore(self) -> LoreFileResetToLastMergedArgs {
-        let lore_paths: Vec<LoreString> =
-            self.paths.iter().map(|p| LoreString::from_str(p)).collect();
+    fn into_lore(self, repo_root: &std::path::Path) -> LoreFileResetToLastMergedArgs {
+        let lore_paths: Vec<LoreString> = self
+            .paths
+            .iter()
+            .map(|p| {
+                let path = std::path::Path::new(p);
+                if path.is_absolute() {
+                    LoreString::from_str(p)
+                } else {
+                    LoreString::from_path(repo_root.join(path))
+                }
+            })
+            .collect();
         LoreFileResetToLastMergedArgs {
             paths: LoreArray::from_vec(lore_paths),
             branch: LoreString::from_str(&self.branch),
@@ -90,8 +100,11 @@ pub async fn reset_to_last_merged(
 ) -> Result<FileResetToLastMergedResult> {
     let (callback, rx) = collect_events();
 
+    let globals = api.globals();
+    let repo_root = globals.repository_path.clone();
     let status =
-        lore::file::reset_to_last_merged(api.globals().build(), args.into_lore(), callback).await;
+        lore::file::reset_to_last_merged(globals.build(), args.into_lore(&repo_root), callback)
+            .await;
 
     let stream = rx
         .await
@@ -175,7 +188,7 @@ mod tests {
             branch: "feature-branch".into(),
             purge: false,
         };
-        let lore_args = args.into_lore();
+        let lore_args = args.into_lore(std::path::Path::new("/repo"));
         assert_eq!(lore_args.paths.len(), 2);
         assert_eq!(lore_args.branch.as_str(), "feature-branch");
         assert_eq!(lore_args.purge, 0);
@@ -188,7 +201,7 @@ mod tests {
             branch: String::new(),
             purge: true,
         };
-        let lore_args = args.into_lore();
+        let lore_args = args.into_lore(std::path::Path::new("/repo"));
         assert_eq!(lore_args.purge, 1);
     }
 

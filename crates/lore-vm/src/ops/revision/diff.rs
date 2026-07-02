@@ -29,7 +29,7 @@ pub struct RevisionDiffArgs {
 }
 
 impl RevisionDiffArgs {
-    fn into_lore(self) -> LoreRevisionDiffArgs {
+    fn into_lore(self, repo_root: &std::path::Path) -> LoreRevisionDiffArgs {
         LoreRevisionDiffArgs {
             revision_source: LoreString::from_str(&self.revision_source),
             revision_target: LoreString::from_str(&self.revision_target),
@@ -84,7 +84,9 @@ pub struct RevisionDiffResult {
 pub async fn diff(api: &LoreApi, args: RevisionDiffArgs) -> Result<RevisionDiffResult> {
     let (callback, rx) = collect_events();
 
-    let status = lore::revision::diff(api.globals().build(), args.into_lore(), callback).await;
+    let globals = api.globals();
+    let repo_root = globals.repository_path.clone();
+    let status = lore::revision::diff(globals.build(), args.into_lore(&repo_root), callback).await;
 
     let stream = rx
         .await
@@ -159,7 +161,7 @@ mod tests {
             revision_target: "rev2".into(),
             paths: vec!["a.txt".into(), "b.txt".into()],
         };
-        let lore_args = args.into_lore();
+        let lore_args = args.into_lore(std::path::Path::new("/repo"));
         assert_eq!(lore_args.revision_source.as_str(), "rev1");
         assert_eq!(lore_args.revision_target.as_str(), "rev2");
         assert_eq!(lore_args.paths.len(), 2);

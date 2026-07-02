@@ -31,11 +31,18 @@ pub struct BranchDiffArgs {
 }
 
 impl BranchDiffArgs {
-    fn into_lore(self) -> LoreBranchDiffArgs {
+    fn into_lore(self, repo_root: &std::path::Path) -> LoreBranchDiffArgs {
         LoreBranchDiffArgs {
             source: LoreString::from_str(&self.source),
             target: LoreString::from_str(&self.target),
-            path: LoreString::from_str(&self.path),
+            path: {
+                let p = std::path::Path::new(&self.path);
+                if p.is_absolute() {
+                    LoreString::from_str(&self.path)
+                } else {
+                    LoreString::from_path(repo_root.join(p))
+                }
+            },
             auto_resolve: u8::from(self.auto_resolve),
         }
     }
@@ -98,7 +105,9 @@ fn map_action(action: lore::interface::LoreFileAction) -> BranchDiffAction {
 pub async fn diff(api: &LoreApi, args: BranchDiffArgs) -> Result<BranchDiffResult> {
     let (callback, rx) = collect_events();
 
-    let status = lore::branch::diff(api.globals().build(), args.into_lore(), callback).await;
+    let globals = api.globals();
+    let repo_root = globals.repository_path.clone();
+    let status = lore::branch::diff(globals.build(), args.into_lore(&repo_root), callback).await;
 
     let stream = rx
         .await
@@ -180,10 +189,10 @@ mod tests {
             path: "assets/".into(),
             auto_resolve: true,
         };
-        let lore_args = args.into_lore();
+        let lore_args = args.into_lore(std::path::Path::new("/repo"));
         assert_eq!(lore_args.source.as_str(), "dev");
         assert_eq!(lore_args.target.as_str(), "main");
-        assert_eq!(lore_args.path.as_str(), "assets/");
+        assert_eq!(lore_args.path.as_str(), "/repo/assets/");
         assert_eq!(lore_args.auto_resolve, 1);
     }
 
@@ -195,7 +204,7 @@ mod tests {
             path: String::new(),
             auto_resolve: false,
         };
-        let lore_args = args.into_lore();
+        let lore_args = args.into_lore(std::path::Path::new("/repo"));
         assert_eq!(lore_args.auto_resolve, 0);
     }
 

@@ -33,9 +33,19 @@ pub struct FileInfoArgs {
 }
 
 impl FileInfoArgs {
-    fn into_lore(self) -> LoreFileInfoArgs {
-        let lore_paths: Vec<LoreString> =
-            self.paths.iter().map(|p| LoreString::from_str(p)).collect();
+    fn into_lore(self, repo_root: &std::path::Path) -> LoreFileInfoArgs {
+        let lore_paths: Vec<LoreString> = self
+            .paths
+            .iter()
+            .map(|p| {
+                let path = std::path::Path::new(p);
+                if path.is_absolute() {
+                    LoreString::from_str(p)
+                } else {
+                    LoreString::from_path(repo_root.join(path))
+                }
+            })
+            .collect();
         LoreFileInfoArgs {
             paths: LoreArray::from_vec(lore_paths),
             revision: LoreString::from_str(&self.revision),
@@ -92,7 +102,9 @@ pub struct FileInfoResult {
 pub async fn info(api: &LoreApi, args: FileInfoArgs) -> Result<FileInfoResult> {
     let (callback, rx) = collect_events();
 
-    let status = lore::file::info(api.globals().build(), args.into_lore(), callback).await;
+    let globals = api.globals();
+    let repo_root = globals.repository_path.clone();
+    let status = lore::file::info(globals.build(), args.into_lore(&repo_root), callback).await;
 
     let stream = rx
         .await
@@ -176,7 +188,7 @@ mod tests {
             local: true,
             filtered: true,
         };
-        let lore_args = args.into_lore();
+        let lore_args = args.into_lore(std::path::Path::new("/repo"));
         assert_eq!(lore_args.revision.as_str(), "rev1");
         assert_eq!(lore_args.local, 1);
         assert_eq!(lore_args.filtered, 1);

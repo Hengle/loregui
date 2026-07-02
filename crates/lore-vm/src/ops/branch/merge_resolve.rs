@@ -19,7 +19,7 @@ pub struct BranchMergeResolveArgs {
 }
 
 impl BranchMergeResolveArgs {
-    fn into_lore(self) -> LoreBranchMergeResolveArgs {
+    fn into_lore(self, repo_root: &std::path::Path) -> LoreBranchMergeResolveArgs {
         LoreBranchMergeResolveArgs {
             paths: LoreArray::from_vec(
                 self.paths.iter().map(|p| LoreString::from_str(p)).collect(),
@@ -40,8 +40,10 @@ pub async fn merge_resolve(
 ) -> Result<BranchMergeResolveResult> {
     let (callback, rx) = collect_events();
 
+    let globals = api.globals();
+    let repo_root = globals.repository_path.clone();
     let status =
-        lore::branch::merge_resolve(api.globals().build(), args.into_lore(), callback).await;
+        lore::branch::merge_resolve(globals.build(), args.into_lore(&repo_root), callback).await;
 
     let stream = rx
         .await
@@ -100,7 +102,7 @@ mod tests {
         let args = BranchMergeResolveArgs {
             paths: vec!["a.txt".into(), "b.txt".into()],
         };
-        let lore_args = args.into_lore();
+        let lore_args = args.into_lore(std::path::Path::new("/repo"));
         assert_eq!(lore_args.paths.as_slice().len(), 2);
     }
 

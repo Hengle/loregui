@@ -46,12 +46,19 @@ fn default_context_lines() -> u32 {
 }
 
 impl DiffArgs {
-    fn into_lore(self) -> LoreFileDiffArgs {
+    fn into_lore(self, repo_root: &std::path::Path) -> LoreFileDiffArgs {
         LoreFileDiffArgs {
             paths: lore::interface::LoreArray::from_vec(
                 self.paths
-                    .into_iter()
-                    .map(|p| LoreString::from_str(&p))
+                    .iter()
+                    .map(|p| {
+                        let path = std::path::Path::new(p);
+                        if path.is_absolute() {
+                            LoreString::from_str(p)
+                        } else {
+                            LoreString::from_path(repo_root.join(path))
+                        }
+                    })
                     .collect(),
             ),
             source_revision: LoreString::from_str(&self.source_revision),
@@ -93,7 +100,9 @@ pub struct FileDiffEntry {
 pub async fn diff(api: &LoreApi, args: DiffArgs) -> Result<Vec<FileDiffEntry>> {
     let (callback, rx) = collect_events();
 
-    let status = lore::file::diff(api.globals().build(), args.into_lore(), callback).await;
+    let globals = api.globals();
+    let repo_root = globals.repository_path.clone();
+    let status = lore::file::diff(globals.build(), args.into_lore(&repo_root), callback).await;
 
     let stream = rx
         .await
@@ -176,7 +185,7 @@ mod tests {
             ignore_whitespace_eol: true,
             ignore_whitespace_inline: true,
         };
-        let lore_args = args.into_lore();
+        let lore_args = args.into_lore(std::path::Path::new("/repo"));
         assert_eq!(lore_args.source_revision.as_str(), "rev1");
         assert_eq!(lore_args.target_revision.as_str(), "rev2");
         assert_eq!(lore_args.diff3, 1);
@@ -196,7 +205,7 @@ mod tests {
             ignore_whitespace_eol: false,
             ignore_whitespace_inline: false,
         };
-        let lore_args = args.into_lore();
+        let lore_args = args.into_lore(std::path::Path::new("/repo"));
         assert_eq!(lore_args.paths.len(), 2);
     }
 

@@ -23,9 +23,16 @@ pub struct MetadataClearArgs {
 }
 
 impl MetadataClearArgs {
-    fn into_lore(self) -> LoreFileMetadataClearArgs {
+    fn into_lore(self, repo_root: &std::path::Path) -> LoreFileMetadataClearArgs {
         LoreFileMetadataClearArgs {
-            path: LoreString::from_str(&self.path),
+            path: {
+                let p = std::path::Path::new(&self.path);
+                if p.is_absolute() {
+                    LoreString::from_str(&self.path)
+                } else {
+                    LoreString::from_path(repo_root.join(p))
+                }
+            },
         }
     }
 }
@@ -46,8 +53,10 @@ pub async fn metadata_clear(api: &LoreApi, args: MetadataClearArgs) -> Result<Me
 
     let (callback, rx) = collect_events();
 
+    let globals = api.globals();
+    let repo_root = globals.repository_path.clone();
     let status =
-        lore::file::metadata_clear(api.globals().build(), args.into_lore(), callback).await;
+        lore::file::metadata_clear(globals.build(), args.into_lore(&repo_root), callback).await;
 
     let stream = rx
         .await
@@ -87,8 +96,8 @@ mod tests {
         let args = MetadataClearArgs {
             path: "test/file.txt".to_string(),
         };
-        let lore_args = args.into_lore();
-        assert_eq!(lore_args.path.as_str(), "test/file.txt");
+        let lore_args = args.into_lore(std::path::Path::new("/repo"));
+        assert_eq!(lore_args.path.as_str(), "/repo/test/file.txt");
     }
 
     #[test]
