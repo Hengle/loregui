@@ -43,7 +43,8 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          LAST=$(git tag -l 'v*' --sort=-v:refname | head -1)
+          # strict vMAJOR.MINOR.PATCH only — 'v*' also matched vscode-v* tags
+          LAST=$(git tag -l 'v[0-9]*' --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1)
           if [ -z "$LAST" ]; then echo "no prior v* tag"; LAST=v0.0.0; fi
           NEW_COMMITS=$(git rev-list --count "${LAST}..HEAD" 2>/dev/null || git rev-list --count HEAD)
           echo "last=$LAST new_commits=$NEW_COMMITS"
@@ -51,9 +52,16 @@ jobs:
             echo "release=false" >> "$GITHUB_OUTPUT"; exit 0
           fi
           # main CI must be green (latest completed CI run on main)
-          CI=$(gh run list -R "$GITHUB_REPOSITORY" -w CI -b main -L 1 --json conclusion,status \
-               --jq '.[0] | .status + "/" + (.conclusion // "-")')
-          echo "main CI: $CI"
+          # wait for an in-flight main CI run (e.g. a merge landed minutes ago)
+          for w in $(seq 1 40); do
+            CI=$(gh run list -R "$GITHUB_REPOSITORY" -w CI -b main -L 1 --json conclusion,status \
+                 --jq '.[0] | .status + "/" + (.conclusion // "-")')
+            echo "main CI: $CI"
+            case "$CI" in
+              completed/*) break ;;
+              *) sleep 60 ;;
+            esac
+          done
           if [ "$CI" != "completed/success" ]; then
             echo "::error::main CI is not green ($CI) — refusing to auto-release"; exit 1
           fi
